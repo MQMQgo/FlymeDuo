@@ -463,8 +463,12 @@ final class TrioRenderer {
                                        int[] slotLevels, int sims, String mobileType, int role,
                                        int fg, TrioAppearance a, boolean wifiConnected,
                                        String noServiceLabel) {
+        int unreadSimPart = Prefs.PART_NONE;
+        if (sims == 1) {
+            unreadSimPart = slotLevels[0] < 0 ? Prefs.PART_SIM_1 : Prefs.PART_SIM_2;
+        }
         final TrioAppearance.Ring r = a.ring(level, charging, wifiLevel, mobileType, sims,
-                wifiConnected, noServiceLabel != null);
+                wifiConnected, noServiceLabel != null, unreadSimPart);
         drawFreeRing(canvas, level, quickCharging, wifiLevel, mobileLevel,
                 slotLevels, noServiceLabel != null ? noServiceLabel : mobileType, role, fg, a, r);
     }
@@ -477,7 +481,6 @@ final class TrioRenderer {
         for (int z = 0; z < 3; z++) {
             final int part = r.parts[z];
             if (part == Prefs.PART_NONE) continue;
-            if (r.stackedDual && Prefs.isSignalRow(part)) continue;
             final float cx = TrioGeometry.B_CX;
             final float cy = TrioGeometry.ZONE_CY[z];
             final float width = 78f - a.ringStroke;
@@ -506,6 +509,8 @@ final class TrioRenderer {
                 c.translate(-TrioGeometry.BOLT_CX_REF, -TrioGeometry.BOLT_INK_CY);
                 FILL.setColor(quickCharging ? TrioGeometry.QUICK_CHARGE : fg);
                 c.drawPath(BOLT, FILL);
+            } else if (z == r.stackedSignalZone) {
+                drawStackedRingRows(c, levels, z, width, fg, a);
             } else if (Prefs.isSignalRow(part)) {
                 final int active = Prefs.clamp(rowValue(part, mobileLevel, levels), 0, 4);
                 final float rowBead = TrioGeometry.arcRowDotR(z, a.ringStroke, width,
@@ -588,22 +593,16 @@ final class TrioRenderer {
             }
             c.restoreToCount(save);
         }
-        if (r.stackedDual) {
-            drawStackedRingRows(c, levels, fg, a);
-        }
     }
 
-    private static void drawStackedRingRows(Canvas c, int[] levels, int fg, TrioAppearance a) {
-        final int zone = a.dualStackAtBottom() ? Prefs.ZONE_BOTTOM : 0;
+    private static void drawStackedRingRows(Canvas c, int[] levels, int zone, float width,
+                                            int fg, TrioAppearance a) {
         final int first = Prefs.clamp(levels[0], 0, 4);
         final int second = Prefs.clamp(levels[1], 0, 4);
-        final int save = c.save();
-        c.translate(TrioGeometry.B_CX, TrioGeometry.ZONE_CY[zone]);
-        if (a.dualStackMatrix()) {
+        if (a.dualStackMatrix) {
             drawDualMatrix(c, zone, first, second, fg, a);
         } else {
-            final float bead = TrioGeometry.arcRowDotR(zone, a.ringStroke, 78f - a.ringStroke,
-                    a.dotScaleFactor());
+            final float bead = TrioGeometry.arcRowDotR(zone, a.ringStroke, width, a.dotScaleFactor());
             final float outerOffset = a.dualStackDy;
             final float innerOffset = outerOffset - bead * 3f;
             final float radius = TrioGeometry.B_R;
@@ -612,7 +611,6 @@ final class TrioRenderer {
             drawArcDotRow(c, second, zone, bead * (radius + innerOffset) / radius, fg, a,
                     innerOffset);
         }
-        c.restoreToCount(save);
     }
 
     /**
@@ -1729,7 +1727,7 @@ final class TrioRenderer {
         // Local y grows DOWNWARD, so a positive sign is the lower half. This was inverted
         // at first, and the matrix then jumped to the top exactly when the setting said
         // bottom - landing on the type label and the Wi-Fi arcs.
-        final float sign = a.dualStackAtBottom() ? 1f : -1f;
+        final float sign = zone == Prefs.ZONE_BOTTOM ? 1f : -1f;
         final float base = ringCy + sign * (dot * 4.5f) + a.dualMatrixDy;
         final int inactive = withAlpha(fg, a.trackAlpha);
         FILL.setStyle(Paint.Style.FILL);

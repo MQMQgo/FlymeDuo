@@ -502,10 +502,13 @@ private fun DrawingEditorCard(
             if (appearance.signalOutOfRing) {
                 SignalOutOfRingNotice()
             }
-            val actual = TrioZones.occupant(
-                openZone, appearance, scene.level, scene.charging,
-                scene.wifiLevel, PREVIEW_TYPE, sims,
-            )
+            val ring = if (appearance.ring) {
+                appearance.ring(scene.level, scene.charging, scene.wifiLevel, PREVIEW_TYPE, sims)
+            } else null
+            val actual = if (ring == null) {
+                TrioZones.occupant(openZone, appearance, scene.level, scene.charging,
+                    scene.wifiLevel, PREVIEW_TYPE, sims)
+            } else null
             Column(modifier = Modifier.fillMaxWidth().padding(top = 6.dp)) {
                 if (chain.isEmpty()) {
                     Text(
@@ -521,7 +524,7 @@ private fun DrawingEditorCard(
                         index = index,
                         part = part,
                         lastIndex = chain.size - 1,
-                        isDrawing = part == actual,
+                        isDrawing = ring?.drawsPart(openZone.ordinal, id) ?: (part == actual),
                         onMove = { i, delta -> reorderZone(openZone, i, delta) },
                         onRemove = { reorderZone(openZone, index, REMOVE) },
                         // The same sheet the library opens, so the two entrances cannot
@@ -1129,10 +1132,14 @@ private fun PlacementFeedback(
     scene: PreviewScene,
     sims: Int,
 ) {
-    val actual = TrioZones.occupant(
-        selection.zone, appearance, scene.level, scene.charging,
-        scene.wifiLevel, PREVIEW_TYPE, sims,
-    )
+    val actual = if (appearance.ring) {
+        val ring = appearance.ring(scene.level, scene.charging, scene.wifiLevel, PREVIEW_TYPE, sims)
+        if (ring.drawsPart(selection.zone.ordinal, TrioZones.encodePart(selection.part))) return
+        TrioZones.occupant(selection.zone, appearance, ring)
+    } else {
+        TrioZones.occupant(selection.zone, appearance, scene.level, scene.charging,
+            scene.wifiLevel, PREVIEW_TYPE, sims)
+    }
     if (actual == selection.part) return
 
     val messageRes = when {
@@ -1569,11 +1576,9 @@ private fun PriorityPreferenceRow(
         ) {
             RadioButtonPreference(
                 title = stringResource(occupantLabelRes(part)),
-                // Where this row sits in the chain, and - when it is the head - whether it
-                // is the one actually visible. Those differ when the head has nothing to
-                // draw on this frame and the fallback behind it takes over.
+                // A fallback can be visible when it takes over or shares the SIM opening.
                 summary = when {
-                    index == 0 && isDrawing -> stringResource(R.string.drawing_priority_showing)
+                    isDrawing -> stringResource(R.string.drawing_priority_showing, index + 1)
                     index == 0 -> stringResource(R.string.drawing_priority_first, index + 1)
                     else -> stringResource(R.string.drawing_priority_fallback, index + 1)
                 },

@@ -386,7 +386,8 @@ private fun RingPositionControl(
     // list labelled it 涓嬮儴 - a piece sitting on the left reported itself as being at
     // the bottom. The order here is also the order the reader sees, so it has to match
     // the tab strip.
-    val slots = if (settings.trioStyle == Prefs.STYLE_CAPSULE) {
+    val capsule = settings.trioStyle == Prefs.STYLE_CAPSULE
+    val slots = if (capsule) {
         listOf(TrioZones.Zone.TOP, TrioZones.Zone.LEFT, TrioZones.Zone.CENTRE,
             TrioZones.Zone.BOTTOM)
     } else {
@@ -407,7 +408,8 @@ private fun RingPositionControl(
     }
     val blocked = buildSet {
         slots.forEachIndexed { index, zone ->
-            if (!TrioZones.accepts(zone, part, settings) || zones[zone.ordinal].contains(otherSim)) {
+            val occupiedByOtherSim = capsule && zones[zone.ordinal].contains(otherSim)
+            if (!TrioZones.accepts(zone, part, settings) || occupiedByOtherSim) {
                 add(index + 1)
             }
         }
@@ -427,12 +429,12 @@ private fun RingPositionControl(
         TrioZones.Part.CLOCK -> R.string.ring_position_clock
     }
     ContentChoice(selected, title,
-        null,
+        if (!capsule && part == TrioZones.Part.SIM_2) R.string.ring_sim_positions_summary else null,
         listOf(R.string.ring_position_native) + slots.map { zone ->
             when (zone) {
                 TrioZones.Zone.TOP -> R.string.drawing_hint_top
                 TrioZones.Zone.LEFT -> R.string.drawing_hint_left
-                TrioZones.Zone.CENTRE -> if (settings.trioStyle == Prefs.STYLE_CAPSULE)
+                TrioZones.Zone.CENTRE -> if (capsule)
                     R.string.drawing_hint_right else R.string.drawing_hint_centre
                 else -> R.string.drawing_hint_bottom
             }

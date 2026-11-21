@@ -541,20 +541,13 @@ public final class TrioZones {
      * is re-derived, so this table cannot disagree with the renderer about what is
      * on screen; it only says which third each decided piece ended up in.
      *
-     * <p>Within a zone the candidates are mutually exclusive by construction -
-     * {@code TrioAppearance.Ring} arbitrates one occupant per slot - so the order
-     * of the tests below is documentation rather than precedence. The ranking it
-     * expresses is the real one: the bolt outranks the dual rows, which outrank
-     * the arcs, which outrank the type label.
+     * <p>When both SIM rows share an opening, the first eligible row represents the pair.
+     * Both rows open the same settings sheet.
      */
     public static Part occupant(Zone zone, TrioAppearance a, TrioAppearance.Ring r) {
         if (a == null || r == null) {
             return null;
         }
-        // One answer, because there is one layout: the slot says what is drawn, and
-        // TrioAppearance has already blanked the slots whose piece has nothing to show
-        // this frame. The switch-derived arbitration that used to follow is gone with the
-        // automatic layout.
         return decodePart(r.parts[zone.ordinal()]);
     }
 

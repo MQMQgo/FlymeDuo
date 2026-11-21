@@ -216,10 +216,6 @@ public final class TrioSettings {
     public boolean typeHideOnDataOff;
     public int ringTypeSim;
     public boolean ringWarnNoService;
-    /** Stack both cards inside the ring; see {@link Prefs#KEY_DUAL_INSIDE_RING}. */
-    public boolean dualInsideRing;
-    /** Where the stacked pair sits; see {@link Prefs#KEY_DUAL_STACK_POS}. */
-    public int dualStackPos;
     /** Vertical nudge of the stacked pair, in design units; see {@link Prefs#KEY_DUAL_STACK_DY}. */
     public int dualStackDy;
     /** Draw the pair as a flat 2x4 matrix instead of concentric arcs. */
@@ -415,8 +411,6 @@ public final class TrioSettings {
         s.typeHideOnDataOff = Prefs.DEF_TYPE_HIDE_ON_DATA_OFF;
         s.ringTypeSim = Prefs.TYPE_SIM_DATA;
         s.ringWarnNoService = Prefs.DEF_RING_WARN_NO_SERVICE;
-        s.dualInsideRing = Prefs.DEF_DUAL_INSIDE_RING;
-        s.dualStackPos = Prefs.DEF_DUAL_STACK_POS;
         s.dualStackDy = Prefs.DEF_DUAL_STACK_NUDGE;
         s.dualStackMatrix = Prefs.DEF_DUAL_STACK_MATRIX;
         s.dualMatrixSize = Prefs.DEF_DUAL_MATRIX_SIZE;
@@ -643,11 +637,6 @@ public final class TrioSettings {
                 Prefs.TYPE_SIM_DATA, Prefs.TYPE_SIM_2);
         s.ringWarnNoService = p.getBoolean(Prefs.KEY_RING_WARN_NO_SERVICE,
                 Prefs.DEF_RING_WARN_NO_SERVICE);
-        s.dualInsideRing = p.getBoolean(Prefs.KEY_DUAL_INSIDE_RING,
-                Prefs.DEF_DUAL_INSIDE_RING);
-        s.dualStackPos = Prefs.clamp(
-                p.getInt(Prefs.KEY_DUAL_STACK_POS, Prefs.DEF_DUAL_STACK_POS),
-                Prefs.MIN_DUAL_STACK_POS, Prefs.MAX_DUAL_STACK_POS);
         s.dualStackDy = Prefs.clamp(
                 p.getInt(Prefs.KEY_DUAL_STACK_DY, Prefs.DEF_DUAL_STACK_NUDGE),
                 Prefs.MIN_DUAL_STACK_NUDGE, Prefs.MAX_DUAL_STACK_NUDGE);
@@ -1030,8 +1019,6 @@ public final class TrioSettings {
         s.typeHideOnDataOff = typeHideOnDataOff;
         s.ringTypeSim = ringTypeSim;
         s.ringWarnNoService = ringWarnNoService;
-        s.dualInsideRing = dualInsideRing;
-        s.dualStackPos = dualStackPos;
         s.dualStackDy = dualStackDy;
         s.dualStackMatrix = dualStackMatrix;
         s.dualMatrixSize = dualMatrixSize;
@@ -1149,8 +1136,6 @@ public final class TrioSettings {
             case Prefs.KEY_TYPE_HIDE_ON_DATA_OFF: typeHideOnDataOff = src.typeHideOnDataOff; return true;
             case Prefs.KEY_RING_TYPE_SIM: ringTypeSim = src.ringTypeSim; return true;
             case Prefs.KEY_RING_WARN_NO_SERVICE: ringWarnNoService = src.ringWarnNoService; return true;
-            case Prefs.KEY_DUAL_INSIDE_RING: dualInsideRing = src.dualInsideRing; return true;
-            case Prefs.KEY_DUAL_STACK_POS: dualStackPos = src.dualStackPos; return true;
             case Prefs.KEY_DUAL_STACK_DY: dualStackDy = src.dualStackDy; return true;
             case Prefs.KEY_DUAL_MATRIX_SIZE: dualMatrixSize = src.dualMatrixSize; return true;
             case Prefs.KEY_DUAL_MATRIX_GAP: dualMatrixGap = src.dualMatrixGap; return true;
@@ -1344,11 +1329,6 @@ public final class TrioSettings {
                 Prefs.TYPE_SIM_DATA, Prefs.TYPE_SIM_2);
         s.ringWarnNoService = bundle.getBoolean(Prefs.KEY_RING_WARN_NO_SERVICE,
                 Prefs.DEF_RING_WARN_NO_SERVICE);
-        s.dualInsideRing = bundle.getBoolean(Prefs.KEY_DUAL_INSIDE_RING,
-                Prefs.DEF_DUAL_INSIDE_RING);
-        s.dualStackPos = Prefs.clamp(
-                bundle.getInt(Prefs.KEY_DUAL_STACK_POS, Prefs.DEF_DUAL_STACK_POS),
-                Prefs.MIN_DUAL_STACK_POS, Prefs.MAX_DUAL_STACK_POS);
         s.dualStackDy = Prefs.clamp(
                 bundle.getInt(Prefs.KEY_DUAL_STACK_DY, Prefs.DEF_DUAL_STACK_NUDGE),
                 Prefs.MIN_DUAL_STACK_NUDGE, Prefs.MAX_DUAL_STACK_NUDGE);
@@ -1493,8 +1473,6 @@ public final class TrioSettings {
         b.putBoolean(Prefs.KEY_TYPE_HIDE_ON_DATA_OFF, typeHideOnDataOff);
         b.putInt(Prefs.KEY_RING_TYPE_SIM, ringTypeSim);
         b.putBoolean(Prefs.KEY_RING_WARN_NO_SERVICE, ringWarnNoService);
-        b.putBoolean(Prefs.KEY_DUAL_INSIDE_RING, dualInsideRing);
-        b.putInt(Prefs.KEY_DUAL_STACK_POS, dualStackPos);
         b.putInt(Prefs.KEY_DUAL_STACK_DY, dualStackDy);
         b.putBoolean(Prefs.KEY_DUAL_STACK_MATRIX, dualStackMatrix);
         b.putInt(Prefs.KEY_DUAL_MATRIX_SIZE, dualMatrixSize);
@@ -1640,8 +1618,6 @@ public final class TrioSettings {
                 && typeHideOnDataOff == s.typeHideOnDataOff
                 && ringTypeSim == s.ringTypeSim
                 && ringWarnNoService == s.ringWarnNoService
-                && dualInsideRing == s.dualInsideRing
-                && dualStackPos == s.dualStackPos
                 && dualStackDy == s.dualStackDy
                 && dualStackMatrix == s.dualStackMatrix
                 && dualMatrixSize == s.dualMatrixSize
@@ -1677,8 +1653,6 @@ public final class TrioSettings {
         h = h * 31 + (typeHideOnDataOff ? 1 : 0);
         h = h * 31 + ringTypeSim;
         h = h * 31 + (ringWarnNoService ? 1 : 0);
-        h = h * 31 + (dualInsideRing ? 1 : 0);
-        h = h * 31 + dualStackPos;
         h = h * 31 + dualStackDy;
         h = h * 31 + (dualStackMatrix ? 1 : 0);
         h = h * 31 + dualMatrixSize;

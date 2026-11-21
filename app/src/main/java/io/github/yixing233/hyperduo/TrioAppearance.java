@@ -115,8 +115,6 @@ public final class TrioAppearance {
      * changes.
      */
 
-    /** Stack both cards inside the ring; see {@link Prefs#KEY_DUAL_INSIDE_RING}. */
-    public final boolean dualInsideRing;
     /** Pretend a second card is present, so a one-SIM install can see the stacked pair. */
     public final boolean demoDualSim;
     /** Draw 5GA when the radio is 5G-Advanced. */
@@ -127,8 +125,6 @@ public final class TrioAppearance {
     public final boolean sysChargeIconLeft;
     /** Power saver colours the ring; see {@link Prefs#KEY_POWER_SAVE_COLOR}. */
     public final boolean powerSaveColor;
-    /** Where the stacked pair sits; see {@link Prefs#KEY_DUAL_STACK_POS}. */
-    public final int dualStackPos;
     /** Nudges of the stacked pair, in design units. */
     public final int dualStackDy;
     /** Draw the pair as a flat 2x4 matrix instead of concentric arcs. */
@@ -332,13 +328,11 @@ public final class TrioAppearance {
         stackedSignal = Prefs.OUT_RING_FEATURES && c.stackedSignal;
         dualSim = c.dualSim;
 
-        dualInsideRing = c.dualInsideRing;
         demoDualSim = c.demoDualSim;
         typeFollowNrAdvanced = c.typeFollowNrAdvanced;
         sysChargeIcon = c.sysChargeIcon;
         sysChargeIconLeft = c.sysChargeIconLeft;
         powerSaveColor = c.powerSaveColor;
-        dualStackPos = c.dualStackPos;
         dualStackDy = c.dualStackDy;
         dualStackMatrix = c.dualStackMatrix;
         dualMatrixSize = c.dualMatrixSize;
@@ -521,27 +515,6 @@ public final class TrioAppearance {
      */
     public boolean ownsWifi() {
         return wifi && (!ring || hasRingPart(Prefs.PART_WIFI));
-    }
-
-    /**
-     * Whether the two cards are stacked inside the ring this frame.
-     *
-     * <p>Needs three things: the ring is the arrangement being drawn, the user asked for the
-     * stacked form, and there really are two cards. One card is a single row and belongs in a
-     * mouth like any other reading - stacking it would leave the ring looking half-filled.
-     */
-    /** Whether the stacked pair is drawn at the bottom rather than the top. */
-    /** Whether the pair is a flat matrix rather than a pair of arcs. */
-    public boolean dualStackMatrix() {
-        return dualStackMatrix;
-    }
-
-    public boolean dualStackAtBottom() {
-        return dualStackPos == Prefs.DUAL_STACK_BOTTOM;
-    }
-
-    public boolean stacksDualRows(int sims) {
-        return ring && dualInsideRing && sims >= 2;
     }
 
     public boolean ownsValue() {
@@ -844,13 +817,14 @@ public final class TrioAppearance {
      */
     public Ring ring(int level, boolean charging, int wifiLevel, String mobileType, int sims,
                      boolean wifiConnected) {
-        return ring(level, charging, wifiLevel, mobileType, sims, wifiConnected, false);
+        return ring(level, charging, wifiLevel, mobileType, sims, wifiConnected, false,
+                Prefs.PART_NONE);
     }
 
     Ring ring(int level, boolean charging, int wifiLevel, String mobileType, int sims,
-              boolean wifiConnected, boolean noService) {
+              boolean wifiConnected, boolean noService, int unreadSimPart) {
         return new Ring(this, level, charging, wifiLevel, mobileType, sims, wifiConnected,
-                noService);
+                noService, unreadSimPart);
     }
 
     /** The rectangular arrangement's slot assignment for one frame. */
@@ -884,7 +858,7 @@ public final class TrioAppearance {
      * <p>Immutable.
      */
     public static final class Ring {
-        /** Actual occupants this frame; null selects the original automatic layout. */
+        /** The first visible component in each zone. {@link #drawsPart} includes both SIM rows. */
         public final int[] parts;
         /** The arcs leave ink this frame. */
         public final boolean wifi;
@@ -903,9 +877,8 @@ public final class TrioAppearance {
         public final boolean typeInGap;
         /** Something occupies the notch, so the ring has to open for it. */
         public final boolean gapUsed;
-        private final boolean bottomOpen;
-        /** The two cards are drawn inside the ring this frame; see stacksDualRows. */
-        public final boolean stackedDual;
+        /** The opening shared by both SIM rows this frame, or -1 when they draw individually. */
+        final int stackedSignalZone;
         /** The pair is drawn as a matrix this frame, so the mouth widens for it. */
         public final boolean stackedMatrix;
         /** The matrix hangs from the bottom, so the LOWER opening is the one to widen. */
@@ -961,7 +934,13 @@ public final class TrioAppearance {
          * rule applied to the other end: a mouth exists while something sits in it.
          */
         public boolean bottomOpen() {
-            return bottomOpen;
+            return parts[Prefs.ZONE_BOTTOM] != Prefs.PART_NONE;
+        }
+
+        /** Both SIM components are visible when the opening is occupied by their pair. */
+        public boolean drawsPart(int zone, int part) {
+            return parts[zone] == part || (stackedSignalZone == zone
+                    && (part == Prefs.PART_SIM_1 || part == Prefs.PART_SIM_2));
         }
 
         /** The arc's angular sweep this frame; the full circle minus the bottom opening. */
@@ -1013,43 +992,42 @@ public final class TrioAppearance {
          * had ever opened the editor.
          */
         private Ring(TrioAppearance a, int level, boolean charging, int wifiLevel,
-                     String mobileType, int sims, boolean wifiConnected, boolean noService) {
-            // ZONE_COUNT, not 3: the layout stores five sections now (three ring zones plus
-            // the capsule's two), and this array is indexed by Zone.ordinal. The ring only
-            // draws the first three; the rest resolve to PART_NONE because a ring install
-            // has nothing in them, and a ring never asks for them anyway.
+                     String mobileType, int sims, boolean wifiConnected, boolean noService,
+                     int unreadSimPart) {
+            // The extra slot is the capsule's left cell. The ring draws the first three.
             parts = new int[Prefs.ZONE_COUNT];
             // The label yields to the arcs only when the arcs are OURS in this arrangement,
             // the label is inside the glyph, and Wi-Fi is actually connected. See
             // hidesTypeForWifi for why each of those matters; the per-band part - keeping a
             // band filled - is decided inside firstDrawableInk.
             final boolean yieldType = a.hidesTypeForWifi(wifiConnected);
+            int stackZone = -1;
             for (int z = 0; z < Prefs.ZONE_COUNT; z++) {
-                // The zone draws the FIRST candidate that has something to show this frame.
-                //
-                // That is what makes the list a fallback chain rather than a stack: with
-                // [percentage, arcs] the percentage takes the zone while it has a reading,
-                // and the arcs step in on a frame where it does not - so a zone never goes
-                // blank while any of its pieces could draw. Order is therefore the only
-                // arbitration, which is exactly what dragging the list edits.
-                //
-                // Skipped as well are the placements the ring refuses in this band - a
-                // signal row in the middle, see Prefs.zoneAccepts. Decoding a stored layout
-                // repairs that already, but this loop is what the hooked process runs and it
-                // can be reached from a broadcast that never went through a decode, so the
-                // refusal is enforced here rather than trusted to have arrived.
-                parts[z] = firstDrawableInk(a, a.ringZones[z], z,
+                final int[] order = a.ringZones[z];
+                final int winner = firstDrawableInk(a, order, z,
                         level, charging, wifiLevel, noService ? "" : mobileType, yieldType);
+                parts[z] = winner;
+                final boolean opening = z == TrioZones.Zone.TOP.ordinal() || z == Prefs.ZONE_BOTTOM;
+                if (!opening || !a.showSim1 || !a.showSim2) {
+                    continue;
+                }
+                final int other = switch (winner) {
+                    case Prefs.PART_SIM_1 -> Prefs.PART_SIM_2;
+                    case Prefs.PART_SIM_2 -> Prefs.PART_SIM_1;
+                    default -> Prefs.PART_NONE;
+                };
+                // Two SIMs can share the opening once either row wins its priority list.
+                if (other != Prefs.PART_NONE && contains(order, other)) {
+                    if (sims >= 2) {
+                        stackZone = z;
+                    } else if (winner == unreadSimPart) {
+                        parts[z] = other;
+                    }
+                }
             }
-            // Stack only the two rows that won their placements in this frame.
-            final int top = parts[0];
-            final int bottom = parts[Prefs.ZONE_BOTTOM];
-            final boolean bothRows = (top == Prefs.PART_SIM_1 && bottom == Prefs.PART_SIM_2)
-                    || (top == Prefs.PART_SIM_2 && bottom == Prefs.PART_SIM_1);
-            stackedDual = a.stacksDualRows(sims) && bothRows;
-            final boolean stackAtBottom = stackedDual && a.dualStackAtBottom();
-            stackedMatrixBottom = stackAtBottom && a.dualStackMatrix();
-            stackedMatrix = stackedDual && a.dualStackMatrix() && !stackAtBottom;
+            stackedSignalZone = stackZone;
+            stackedMatrixBottom = stackZone == Prefs.ZONE_BOTTOM && a.dualStackMatrix;
+            stackedMatrix = stackZone == TrioZones.Zone.TOP.ordinal() && a.dualStackMatrix;
             mouthExtraDeg = stackedMatrix || stackedMatrixBottom ? a.dualMouthExtra : 0f;
 
             // A charger puts the number in the middle, whatever the layout arranged there.
@@ -1077,14 +1055,7 @@ public final class TrioAppearance {
             wifiInGap = parts[0] == Prefs.PART_WIFI;
             typeInCentre = parts[1] == Prefs.PART_TYPE;
             typeInGap = parts[0] == Prefs.PART_TYPE;
-            gapUsed = stackedDual ? !stackAtBottom : top != Prefs.PART_NONE;
-            bottomOpen = stackedDual ? stackAtBottom : bottom != Prefs.PART_NONE;
-            // The dual switch does not change how a zone is drawn. It used to mean "add a
-            // second row to the meter, and widen the notch to hold it" - but a zone draws one
-            // piece, so a second row has nowhere to go. Two cards are expressed by placing
-            // PART_SIM_1 and PART_SIM_2 in two different zones. Kept as a field (always false
-            // here) so the renderer's parameters do not change shape for the rectangular
-            // arrangement, which does still have two columns.
+            gapUsed = parts[0] != Prefs.PART_NONE;
             dual = false;
         }
     }
@@ -1531,14 +1502,14 @@ public final class TrioAppearance {
             }
             return false;
         }
+    }
 
-        private static boolean contains(int[] ids, int id) {
-            for (int existing : ids) {
-                if (existing == id) {
-                    return true;
-                }
+    private static boolean contains(int[] ids, int id) {
+        for (int existing : ids) {
+            if (existing == id) {
+                return true;
             }
-            return false;
         }
+        return false;
     }
 }

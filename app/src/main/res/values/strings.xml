@@ -26,7 +26,7 @@
     <string name="drawing_priority_move_up">上移</string>
     <string name="drawing_priority_move_down">下移</string>
     <string name="drawing_priority_remove">移除</string>
-    <string name="drawing_priority_showing">第 1 位 · 正在显示</string>
+    <string name="drawing_priority_showing">第 %1$d 位 · 正在显示</string>
     <string name="drawing_pick_in_zone">已在环内</string>
     <string name="drawing_pick_elsewhere">在别处</string>
     <string name="drawing_pick_showing_now">正在显示这个组件。</string>
@@ -54,6 +54,7 @@
     <string name="out_signal_margin_summary">默认 2dp，可调 0–16dp。</string>
     <string name="ring_position_sim_1">卡一信号点的位置</string>
     <string name="ring_position_sim_2">卡二信号点的位置</string>
+    <string name="ring_sim_positions_summary">两张卡设在同一位置时自动堆叠。</string>
     <string name="ring_position_value">电量数字的位置</string>
     <string name="ring_position_bolt">充电闪电的位置</string>
     <string name="ring_position_type">网络类型的位置</string>
@@ -182,16 +183,8 @@
     <string name="type_follow_nr_advanced_summary">网络上报 5G-A（NR_ADVANCED）时把 5G 显示为 5GA。Flyme 移植包与部分魅族机型的通信层不上报该状态，此时不会生效，请用下方手动开关</string>
     <string name="demo_mobile_type_title">5G 显示为 5GA（手动）</string>
     <string name="demo_mobile_type_summary">把系统的 5G 图标显示为 5GA。只在系统显示 5G 时生效，连 Wi-Fi、4G、关闭移动数据时与原 5G 图标一样随之消失。只改绘制，不碰通信状态</string>
-    <string name="dual_inside_ring_title">双卡信号放进环里</string>
-    <string name="dual_inside_ring_summary">两张卡的信号行改为沿圆环内壁的两条同心弧，不占用环的上下开口</string>
-    <string name="dual_stack_group_title">双卡信号</string>
-    <string name="dual_stack_group_summary">%1$s · %2$s · 垂直 %3$d</string>
-    <string name="dual_stack_on">已开启</string>
-    <string name="dual_stack_off">已关闭</string>
-    <string name="dual_stack_side_top">上部</string>
-    <string name="dual_stack_side_bottom">下部</string>
-    <string name="dual_stack_bottom_title">放在下方</string>
-    <string name="dual_stack_bottom_summary">下方为 6 点方向，上方为 12 点方向。环口自动为矩阵所在的一侧加宽</string>
+    <string name="dual_stack_group_title">双卡堆叠样式</string>
+    <string name="dual_stack_group_summary">两张卡设在同一位置时生效</string>
     <string name="dual_stack_dx_title">堆叠水平位置</string>
     <string name="dual_stack_dx_summary">整组左右平移，负值向左；与环的描边、其他组件无关，只动这一组</string>
     <string name="slider_default_note">默认 %1$s</string>

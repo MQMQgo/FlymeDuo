@@ -118,19 +118,6 @@ public final class Prefs {
      * the platform sampled rather than in how it is drawn.
      */
     public static final String KEY_DEMO_MOBILE_TYPE = "demo_mobile_type";
-    /**
-     * Draw both cards as two concentric arcs inside the ring, instead of one row across
-     * each of its two openings.
-     *
-     * <p>This is the space conflict stated plainly: the ring has exactly two mouths, a
-     * two-card reading wanted both of them, and the network type then had nowhere to sit -
-     * so either the label or the meter had to go. Curving the rows along the inside wall
-     * gives both cards a home that costs no notch, and both mouths close, which also makes
-     * the outline read as one circle instead of two broken segments.
-     */
-    public static final String KEY_DUAL_INSIDE_RING = "dual_inside_ring";
-    /** Where the stacked pair sits: {@link #DUAL_STACK_TOP} or {@link #DUAL_STACK_BOTTOM}. */
-    public static final String KEY_DUAL_STACK_POS = "dual_stack_pos";
     /** Vertical nudge of the stacked pair, in design units. */
     public static final String KEY_DUAL_STACK_DY = "dual_stack_dy";
     public static final String KEY_SHOW_WIFI = "show_wifi";
@@ -1507,11 +1494,6 @@ public final class Prefs {
      */
     public static final String KEY_POWER_SAVE_COLOR = "power_save_color";
     public static final boolean DEF_POWER_SAVE_COLOR = true;
-    /** On by default: the stacked form is the one that leaves the label a place to live. */
-    public static final boolean DEF_DUAL_INSIDE_RING = true;
-    public static final int DUAL_STACK_TOP = 0;
-    public static final int DUAL_STACK_BOTTOM = 1;
-    public static final int DEF_DUAL_STACK_POS = DUAL_STACK_TOP;
     public static final int DEF_DUAL_STACK_NUDGE = 0;
     /** Same span as the glyph nudge: a few design units either way is what the ring can use. */
     public static final int MIN_DUAL_STACK_NUDGE = -20;
@@ -1562,8 +1544,6 @@ public final class Prefs {
     public static final int MAX_DUAL_MATRIX_SIZE = 80;
     public static final int MIN_DUAL_MATRIX_GAP = 160;
     public static final int MAX_DUAL_MATRIX_GAP = 420;
-    public static final int MIN_DUAL_STACK_POS = DUAL_STACK_TOP;
-    public static final int MAX_DUAL_STACK_POS = DUAL_STACK_BOTTOM;
 
     /**
      * Horizontal and vertical nudge for each of the capsule's two INTERIOR cells.

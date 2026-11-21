@@ -733,17 +733,7 @@ internal val iconOffsetXSlider: SliderSpec = SliderSpec(
     suffix = "dp",
 )
 
-/** The rows the merged size-and-position group folds away. */
-/** Where the stacked pair hangs, and how far it may be nudged. */
-
-/**
- * The stacked pair as one row: where it hangs, and how far it may be lifted.
- *
- * <p>Grouped into a sheet rather than left as loose switches on the page because these three
- * settings only mean anything together - the switch decides whether the pair exists at all,
- * and the other two move that pair. Spread across the page they read as unrelated rows, and
- * the position control in particular looked like it belonged to the glyph.
- */
+/** Appearance controls for the two SIM rows sharing a ring opening. */
 @Composable
 internal fun DualStackGroup(
     settings: TrioSettings,
@@ -758,17 +748,7 @@ internal fun DualStackGroup(
     var sheet by rememberSaveable { mutableStateOf(false) }
     ArrowPreference(
         title = stringResource(R.string.dual_stack_group_title),
-        summary = stringResource(
-            R.string.dual_stack_group_summary,
-            stringResource(
-                if (settings.dualInsideRing) R.string.dual_stack_on else R.string.dual_stack_off
-            ),
-            stringResource(
-                if (settings.dualStackPos == Prefs.DUAL_STACK_BOTTOM) R.string.dual_stack_side_bottom
-                else R.string.dual_stack_side_top
-            ),
-            settings.dualStackDy,
-        ),
+        summary = stringResource(R.string.dual_stack_group_summary),
         insideMargin = SettingsItemMargin,
         enabled = a.glyph,
         onClick = { sheet = true },
@@ -788,23 +768,9 @@ internal fun DualStackGroup(
             Column(modifier = Modifier.fillMaxWidth().heightIn(max = maxSheet)
                 .verticalScroll(rememberScrollState()).padding(bottom = bottomInset)) {
                 SwitchPreferenceGroup(
-                    checked = settings.dualInsideRing,
-                    title = stringResource(R.string.dual_inside_ring_title),
-                    summary = stringResource(R.string.dual_inside_ring_summary),
-                    onCheckedChange = { value -> update { it.setDualInsideRing(value) } },
-                )
-                SwitchPreferenceGroup(
-                    checked = settings.dualStackPos == Prefs.DUAL_STACK_BOTTOM,
-                    title = stringResource(R.string.dual_stack_bottom_title),
-                    summary = stringResource(R.string.dual_stack_bottom_summary),
-                    enabled = settings.dualInsideRing,
-                    onCheckedChange = { value -> update { it.setDualStackAtBottom(value) } },
-                )
-                SwitchPreferenceGroup(
                     checked = settings.dualStackMatrix,
                     title = stringResource(R.string.dual_stack_matrix_title),
                     summary = stringResource(R.string.dual_stack_matrix_summary),
-                    enabled = settings.dualInsideRing,
                     onCheckedChange = { value -> update { it.setDualStackMatrix(value) } },
                 )
                 SwitchPreferenceGroup(
@@ -918,7 +884,7 @@ internal val dualStackDySlider: SliderSpec = SliderSpec(
     titleRes = { R.string.dual_stack_dy_title },
     summaryRes = { R.string.dual_stack_dy_summary },
     // Only meaningful for the arc pair; the matrix carries its own vertical nudge.
-    enabled = { it.glyph && it.dualInsideRing && !it.dualStackMatrix },
+    enabled = { it.glyph && !it.dualStackMatrix },
 )
 
 internal val chargeGapGlyphSlider: SliderSpec = SliderSpec(
@@ -959,7 +925,7 @@ internal val dualMouthExtraSlider: SliderSpec = SliderSpec(
     write = { r, v -> r.setDualMouthExtra(v) },
     titleRes = { R.string.dual_mouth_extra_title },
     summaryRes = { R.string.dual_mouth_extra_summary },
-    enabled = { it.glyph && it.dualInsideRing && it.dualStackMatrix },
+    enabled = { it.glyph && it.dualStackMatrix },
     suffix = "°",
 )
 internal val dualMatrixSizeSlider: SliderSpec = SliderSpec(
@@ -972,7 +938,7 @@ internal val dualMatrixSizeSlider: SliderSpec = SliderSpec(
     write = { r, v -> r.setDualMatrixSize(v) },
     titleRes = { R.string.dual_matrix_size_title },
     summaryRes = { R.string.dual_matrix_size_summary },
-    enabled = { it.glyph && it.dualInsideRing && it.dualStackMatrix },
+    enabled = { it.glyph && it.dualStackMatrix },
 )
 
 internal val dualMatrixGapSlider: SliderSpec = SliderSpec(
@@ -985,7 +951,7 @@ internal val dualMatrixGapSlider: SliderSpec = SliderSpec(
     write = { r, v -> r.setDualMatrixGap(v) },
     titleRes = { R.string.dual_matrix_gap_title },
     summaryRes = { R.string.dual_matrix_gap_summary },
-    enabled = { it.glyph && it.dualInsideRing && it.dualStackMatrix },
+    enabled = { it.glyph && it.dualStackMatrix },
 )
 
 internal val dualMatrixDySlider: SliderSpec = SliderSpec(
@@ -998,7 +964,7 @@ internal val dualMatrixDySlider: SliderSpec = SliderSpec(
     write = { r, v -> r.setDualMatrixDy(v) },
     titleRes = { R.string.dual_matrix_dy_title },
     summaryRes = { R.string.dual_matrix_dy_summary },
-    enabled = { it.glyph && it.dualInsideRing && it.dualStackMatrix },
+    enabled = { it.glyph && it.dualStackMatrix },
 )
 
 internal val glyphSizeSpecs: List<SliderSpec> =

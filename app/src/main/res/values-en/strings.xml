@@ -26,7 +26,7 @@
     <string name="drawing_priority_move_up">Move up</string>
     <string name="drawing_priority_move_down">Move down</string>
     <string name="drawing_priority_remove">Remove</string>
-    <string name="drawing_priority_showing">#1 · showing now</string>
+    <string name="drawing_priority_showing">#%1$d · showing now</string>
     <string name="drawing_pick_in_zone">In ring</string>
     <string name="drawing_pick_elsewhere">Elsewhere</string>
     <string name="drawing_pick_showing_now">This is the one being shown.</string>
@@ -155,16 +155,8 @@
     <string name="type_follow_nr_advanced_summary">Shows 5G as 5GA when the network reports 5G-Advanced (NR_ADVANCED). Flyme ports and some Meizu builds never report it; use the manual switch below there.</string>
     <string name="demo_mobile_type_title">Show 5G as 5GA (manual)</string>
     <string name="demo_mobile_type_summary">Draws the stock 5G label as 5GA. Only applies while the system shows 5G, so it disappears with Wi-Fi, 4G or mobile data off just like the stock label. Drawing only.</string>
-    <string name="dual_inside_ring_title">Stack both cards inside the ring</string>
-    <string name="dual_inside_ring_summary">Draws the two cards as concentric arcs along the inside of the ring instead of one row across each mouth. The mouths can then close, and the network type has somewhere to sit beside them.</string>
-    <string name="dual_stack_group_title">Stacked dual reading</string>
-    <string name="dual_stack_group_summary">%1$s · %2$s · vertical %3$d</string>
-    <string name="dual_stack_on">on</string>
-    <string name="dual_stack_off">off</string>
-    <string name="dual_stack_side_top">top</string>
-    <string name="dual_stack_side_bottom">bottom</string>
-    <string name="dual_stack_bottom_title">Hang at the bottom</string>
-    <string name="dual_stack_bottom_summary">On puts the pair at 6 o clock, off at 12. The ring opens automatically on whichever side the matrix hangs, so there is no separate switch for it.</string>
+    <string name="dual_stack_group_title">Stacked SIM appearance</string>
+    <string name="dual_stack_group_summary">Applies when both SIMs share a position</string>
     <string name="dual_stack_dx_title">Pair horizontal</string>
     <string name="dual_stack_dx_summary">Shifts the whole pair left or right; negative moves left. Only this pair moves.</string>
     <string name="slider_default_note">default %1$s</string>
@@ -331,6 +323,7 @@
     <string name="out_signal_margin_summary">The default is 2dp and the slider covers 0–16dp.</string>
     <string name="ring_position_sim_1">SIM 1 dots position</string>
     <string name="ring_position_sim_2">SIM 2 dots position</string>
+    <string name="ring_sim_positions_summary">The rows stack when both SIMs share a position.</string>
     <string name="ring_position_value">Battery number position</string>
     <string name="ring_position_bolt">Charging bolt position</string>
     <string name="ring_position_type">Network type position</string>

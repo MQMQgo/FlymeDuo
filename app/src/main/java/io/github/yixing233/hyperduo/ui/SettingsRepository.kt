@@ -389,15 +389,6 @@ class SettingsRepository(context: Context) {
     fun setSysChargeIconLeft(value: Boolean) = writeBoolean(Prefs.KEY_SYS_CHARGE_ICON_LEFT, value)
     fun setPowerSaveColor(value: Boolean) = writeBoolean(Prefs.KEY_POWER_SAVE_COLOR, value)
 
-    /** Stack both cards inside the ring instead of across its two mouths. */
-    fun setDualInsideRing(value: Boolean) = writeBoolean(Prefs.KEY_DUAL_INSIDE_RING, value)
-
-    /** Which side the stacked pair hangs from: false top, true bottom. */
-    fun setDualStackAtBottom(value: Boolean) = writeInt(
-        Prefs.KEY_DUAL_STACK_POS,
-        if (value) Prefs.DUAL_STACK_BOTTOM else Prefs.DUAL_STACK_TOP,
-    )
-
     fun setDualStackDy(value: Int) = writeInt(Prefs.KEY_DUAL_STACK_DY, value)
 
     /** Flat 2x4 matrix instead of concentric arcs. */
@@ -487,8 +478,6 @@ class SettingsRepository(context: Context) {
             prefs.putBoolean(Prefs.KEY_SYS_CHARGE_ICON, snapshot.sysChargeIcon)
             prefs.putBoolean(Prefs.KEY_SYS_CHARGE_ICON_LEFT, snapshot.sysChargeIconLeft)
             prefs.putBoolean(Prefs.KEY_POWER_SAVE_COLOR, snapshot.powerSaveColor)
-            prefs.putBoolean(Prefs.KEY_DUAL_INSIDE_RING, snapshot.dualInsideRing)
-            prefs.putInt(Prefs.KEY_DUAL_STACK_POS, snapshot.dualStackPos)
             prefs.putInt(Prefs.KEY_DUAL_STACK_DY, snapshot.dualStackDy)
             prefs.putBoolean(Prefs.KEY_DUAL_STACK_MATRIX, snapshot.dualStackMatrix)
             prefs.putInt(Prefs.KEY_DUAL_MATRIX_SIZE, snapshot.dualMatrixSize)
