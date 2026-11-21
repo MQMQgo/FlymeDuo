@@ -391,6 +391,8 @@ class SettingsRepository(context: Context) {
 
     fun setDualStackDy(value: Int) = writeInt(Prefs.KEY_DUAL_STACK_DY, value)
 
+    fun setDualStackSim2OnTop(value: Boolean) = writeBoolean(Prefs.KEY_DUAL_STACK_SIM2_ON_TOP, value)
+
     /** Flat 2x4 matrix instead of concentric arcs. */
     fun setDualStackMatrix(value: Boolean) = writeBoolean(Prefs.KEY_DUAL_STACK_MATRIX, value)
 
@@ -479,6 +481,7 @@ class SettingsRepository(context: Context) {
             prefs.putBoolean(Prefs.KEY_SYS_CHARGE_ICON_LEFT, snapshot.sysChargeIconLeft)
             prefs.putBoolean(Prefs.KEY_POWER_SAVE_COLOR, snapshot.powerSaveColor)
             prefs.putInt(Prefs.KEY_DUAL_STACK_DY, snapshot.dualStackDy)
+            prefs.putBoolean(Prefs.KEY_DUAL_STACK_SIM2_ON_TOP, snapshot.dualStackSim2OnTop)
             prefs.putBoolean(Prefs.KEY_DUAL_STACK_MATRIX, snapshot.dualStackMatrix)
             prefs.putInt(Prefs.KEY_DUAL_MATRIX_SIZE, snapshot.dualMatrixSize)
             prefs.putInt(Prefs.KEY_DUAL_MATRIX_GAP, snapshot.dualMatrixGap)

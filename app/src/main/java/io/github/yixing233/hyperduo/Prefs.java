@@ -120,6 +120,9 @@ public final class Prefs {
     public static final String KEY_DEMO_MOBILE_TYPE = "demo_mobile_type";
     /** Vertical nudge of the stacked pair, in design units. */
     public static final String KEY_DUAL_STACK_DY = "dual_stack_dy";
+    /** Whether SIM 2 supplies the upper row of a stacked pair. */
+    public static final String KEY_DUAL_STACK_SIM2_ON_TOP = "dual_stack_sim2_on_top";
+    public static final boolean DEF_DUAL_STACK_SIM2_ON_TOP = true;
     public static final String KEY_SHOW_WIFI = "show_wifi";
     public static final String KEY_SHOW_MOBILE = "show_mobile";
     public static final String KEY_SHOW_VALUE = "show_value";

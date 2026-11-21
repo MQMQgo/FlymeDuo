@@ -127,6 +127,7 @@ public final class TrioAppearance {
     public final boolean powerSaveColor;
     /** Nudges of the stacked pair, in design units. */
     public final int dualStackDy;
+    public final boolean dualStackSim2OnTop;
     /** Draw the pair as a flat 2x4 matrix instead of concentric arcs. */
     public final boolean dualStackMatrix;
     /** Matrix-only geometry: dot size, pitch and vertical nudge, as percentages/units. */
@@ -334,6 +335,7 @@ public final class TrioAppearance {
         sysChargeIconLeft = c.sysChargeIconLeft;
         powerSaveColor = c.powerSaveColor;
         dualStackDy = c.dualStackDy;
+        dualStackSim2OnTop = c.dualStackSim2OnTop;
         dualStackMatrix = c.dualStackMatrix;
         dualMatrixSize = c.dualMatrixSize;
         dualMatrixGap = c.dualMatrixGap;

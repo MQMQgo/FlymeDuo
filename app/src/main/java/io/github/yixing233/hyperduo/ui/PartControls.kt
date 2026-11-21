@@ -767,6 +767,14 @@ internal fun DualStackGroup(
         ) {
             Column(modifier = Modifier.fillMaxWidth().heightIn(max = maxSheet)
                 .verticalScroll(rememberScrollState()).padding(bottom = bottomInset)) {
+                GlassDropdownPreference(
+                    items = listOf(stringResource(R.string.ring_type_sim_1),
+                        stringResource(R.string.ring_type_sim_2)),
+                    selectedIndex = if (settings.dualStackSim2OnTop) 1 else 0,
+                    title = stringResource(R.string.dual_stack_upper_sim_title),
+                    insideMargin = SettingsItemMargin,
+                    onSelectedIndexChange = { index -> update { it.setDualStackSim2OnTop(index == 1) } },
+                )
                 SwitchPreferenceGroup(
                     checked = settings.dualStackMatrix,
                     title = stringResource(R.string.dual_stack_matrix_title),

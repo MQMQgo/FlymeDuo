@@ -597,20 +597,34 @@ final class TrioRenderer {
 
     private static void drawStackedRingRows(Canvas c, int[] levels, int zone, float width,
                                             int fg, TrioAppearance a) {
-        final int first = Prefs.clamp(levels[0], 0, 4);
-        final int second = Prefs.clamp(levels[1], 0, 4);
+        final int upperSlot = a.dualStackSim2OnTop ? 1 : 0;
+        final int upper = Prefs.clamp(levels[upperSlot], 0, 4);
+        final int lower = Prefs.clamp(levels[1 - upperSlot], 0, 4);
+        final boolean bottomOpening = zone == Prefs.ZONE_BOTTOM;
+        final int nearCentre = bottomOpening ? upper : lower;
+        final int fartherOut = bottomOpening ? lower : upper;
         if (a.dualStackMatrix) {
-            drawDualMatrix(c, zone, first, second, fg, a);
-        } else {
-            final float bead = TrioGeometry.arcRowDotR(zone, a.ringStroke, width, a.dotScaleFactor());
-            final float outerOffset = a.dualStackDy;
-            final float innerOffset = outerOffset - bead * 3f;
-            final float radius = TrioGeometry.B_R;
-            drawArcDotRow(c, first, zone, bead * (radius + outerOffset) / radius, fg, a,
-                    outerOffset);
-            drawArcDotRow(c, second, zone, bead * (radius + innerOffset) / radius, fg, a,
-                    innerOffset);
+            drawDualMatrix(c, zone, nearCentre, fartherOut, fg, a);
+            return;
         }
+
+        final float baseDot = TrioGeometry.arcRowDotR(zone, a.ringStroke, width, a.dotScaleFactor());
+        final float ringRadius = TrioGeometry.B_R;
+        final float outwardNudge = bottomOpening ? a.dualStackDy : -a.dualStackDy;
+        final float outerRadius = Math.min(ringRadius + outwardNudge,
+                ringRadius + TrioGeometry.maxBeadR() - baseDot);
+        final float outerDot = baseDot * Math.min(1f, outerRadius / ringRadius);
+        final float gap = Math.max(1f, 0.4f * outerDot);
+        // Keep a small edge gap as both the radius and the dot size shrink by innerScale.
+        final float innerScale = (outerRadius - outerDot - gap) / (outerRadius + outerDot);
+        final float innerRadius = outerRadius * innerScale;
+        final float innerDot = outerDot * innerScale;
+        final float halfSpan = Math.min(
+                TrioGeometry.stackedRowHalfAngle(outerRadius, outerDot, a.ringStroke),
+                TrioGeometry.stackedRowHalfAngle(innerRadius, innerDot, a.ringStroke));
+        final int inactive = withAlpha(fg, a.trackAlpha);
+        drawCurvedDotRow(c, fartherOut, zone, outerRadius, outerDot, halfSpan, fg, inactive);
+        drawCurvedDotRow(c, nearCentre, zone, innerRadius, innerDot, halfSpan, fg, inactive);
     }
 
     /**
@@ -641,21 +655,6 @@ final class TrioRenderer {
      */
     private static void drawArcDotRow(Canvas c, int active, int zone, float radius,
                                       int fg, TrioAppearance a) {
-        drawArcDotRow(c, active, zone, radius, fg, a, 0f);
-    }
-
-    /**
-     * The same row, on a concentric arc {@code rhoOffset} further out.
-     *
-     * <p>Moving the row RADIALLY rather than translating it is what keeps a second row part of
-     * the same circle. The sagitta, the end insets and the bead clearance are all derived from
-     * the arc radius, so a row pushed with a plain translate would keep the curvature of the arc
-     * it left behind and sit visibly off the ring.
-     *
-     * <p>{@code rhoOffset} of zero is the row exactly where it has always been.
-     */
-    private static void drawArcDotRow(Canvas c, int active, int zone, float radius,
-                                      int fg, TrioAppearance a, float rhoOffset) {
         final int inactive = withAlpha(fg, a.trackAlpha);
         if (zone == 1) {
             // The middle third is not a notch: the ring runs past it on both sides, so
@@ -676,7 +675,7 @@ final class TrioRenderer {
         //
         // Placed in the RING's frame, then converted back into this zone's local space
         // (the caller has already translated to (B_CX, ZONE_CY[z])).
-        final float rho = TrioGeometry.B_R + rhoOffset;
+        final float rho = TrioGeometry.B_R;
         // The bare arc this row sits in: the 12 o'clock notch above, the ring's own
         // opening below. Both are GAP_WIDTH_DEG wide.
         final float openingRad = (float) Math.toRadians(TrioGeometry.GAP_WIDTH_DEG);
@@ -692,18 +691,21 @@ final class TrioRenderer {
         //
         // BEAD_SPAN_DEG is the span the four beads occupy, independent of the notch.
         final float beadHalfAngle = (float) Math.toRadians(TrioGeometry.BEAD_SPAN_DEG * 0.5f);
-        final float halfCentreAngle = Math.min(halfAngle, beadHalfAngle);
+        drawCurvedDotRow(c, active, zone, rho, radius, Math.min(halfAngle, beadHalfAngle),
+                fg, inactive);
+    }
+
+    private static void drawCurvedDotRow(Canvas c, int active, int zone, float rowRadius,
+                                         float dotRadius, float halfSpan, int fg, int inactive) {
+        final float sign = zone == Prefs.ZONE_BOTTOM ? 1f : -1f;
         for (int dot = 0; dot < 4; dot++) {
             final float t = (dot - 1.5f) / 1.5f;
-            final float angle = t * halfCentreAngle;
-            // Top third: the notch straddles 12 o'clock, above the ring centre.
-            // Bottom third: the opening straddles 6 o'clock, below it.
-            final float sign = zone == 2 ? 1f : -1f;
-            final float ringX = TrioGeometry.B_CX + rho * (float) Math.sin(angle);
-            final float ringY = TrioGeometry.B_CY + sign * rho * (float) Math.cos(angle);
+            final float angle = t * halfSpan;
+            final float ringX = TrioGeometry.B_CX + rowRadius * (float) Math.sin(angle);
+            final float ringY = TrioGeometry.B_CY + sign * rowRadius * (float) Math.cos(angle);
             FILL.setColor(dot < active ? fg : inactive);
             c.drawCircle(ringX - TrioGeometry.B_CX,
-                    ringY - TrioGeometry.ZONE_CY[zone], radius, FILL);
+                    ringY - TrioGeometry.ZONE_CY[zone], dotRadius, FILL);
         }
     }
 
@@ -1715,7 +1717,7 @@ final class TrioRenderer {
      * <p>Dot radius is a fifth of the stroke: the reference keeps the dots clearly smaller than
      * the outline, so the ring still reads as the dominant shape.
      */
-    private static void drawDualMatrix(Canvas c, int zone, int sim1, int sim2, int fg,
+    private static void drawDualMatrix(Canvas c, int zone, int nearCentre, int fartherOut, int fg,
                                        TrioAppearance a) {
         // Its own size, and its own only: a percentage of the stroke, so it still tracks the
         // outline the user chose, but never the arc pair's radius or its vertical nudge.
@@ -1732,7 +1734,7 @@ final class TrioRenderer {
         final int inactive = withAlpha(fg, a.trackAlpha);
         FILL.setStyle(Paint.Style.FILL);
         for (int row = 0; row < 2; row++) {
-            final int level = row == 0 ? sim1 : sim2;
+            final int level = row == 0 ? nearCentre : fartherOut;
             final int active = Math.min(4, Math.max(0, level));
             final float y = base + sign * row * step;
             for (int k = 0; k < 4; k++) {

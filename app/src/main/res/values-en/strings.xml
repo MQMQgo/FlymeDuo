@@ -157,6 +157,7 @@
     <string name="demo_mobile_type_summary">Draws the stock 5G label as 5GA. Only applies while the system shows 5G, so it disappears with Wi-Fi, 4G or mobile data off just like the stock label. Drawing only.</string>
     <string name="dual_stack_group_title">Stacked SIM appearance</string>
     <string name="dual_stack_group_summary">Applies when both SIMs share a position</string>
+    <string name="dual_stack_upper_sim_title">SIM in upper row</string>
     <string name="dual_stack_dx_title">Pair horizontal</string>
     <string name="dual_stack_dx_summary">Shifts the whole pair left or right; negative moves left. Only this pair moves.</string>
     <string name="slider_default_note">default %1$s</string>
@@ -173,7 +174,7 @@
     <string name="dual_stack_matrix_title">Matrix (2x4 dots)</string>
     <string name="dual_stack_matrix_summary">Off curves both rows along the ring; on draws them as a flat 2x4 matrix with smaller dots, centred, closer to how a stock dual-SIM reading looks.</string>
     <string name="dual_stack_dy_title">Pair vertical</string>
-    <string name="dual_stack_dy_summary">Shifts the whole pair up or down; negative moves up - useful for clearing the ring mouth or the type label.</string>
+    <string name="dual_stack_dy_summary">Moves both rows. Negative values move them up. Positive values move them down.</string>
 
     <string name="perf_scale_title">Overall reading size</string>
     <string name="perf_scale_summary">The default is 100% and the slider covers 60–150%.</string>

@@ -28,36 +28,6 @@ final class TrioGeometry {
     static final float B_CY = 61.48715261785473f;
     static final float B_R = 51.5f;
 
-    // ---------------------------------------------- stacked dual reading
-    //
-    // Two rows of beads inside the ring, curved along its own wall. Every figure below is a
-    // ratio of the ring stroke so the reading scales with the stroke the user chose: the bead
-    // is 0.30 of it (a little under a third, which reads as secondary to the ring without
-    // turning into a dotted line) and the breathing room is the same 0.30, so the two rows and
-    // the ring are separated by one even gap rather than by two guesses.
-    //
-    // The inner row keeps the SAME angular span and shrinks its beads in proportion to its
-    // radius. That is the rule the Wi-Fi arcs already follow - nesting arcs shrink as they go
-    // in - and it is what makes two concentric rows read as parallel instead of leaving the
-    // inner row looking cramped against the outer one.
-    /** Total arc the four beads of one row span, centred on 6 o'clock. */
-    static final float STACK_SPAN_DEG = 46f;
-    /** Bead radius of the outer row. */
-    static float stackBeadR(float stroke) {
-        return 0.30f * stroke;
-    }
-    /** Centreline radius of the outer row: one bead and one gap in from the ring's inner edge. */
-    static float stackOuterRadius(float stroke) {
-        return B_R - stroke * 0.5f - 0.30f * stroke - stackBeadR(stroke);
-    }
-    /** Centreline radius of the inner row: two beads and one gap in from the outer one. */
-    static float stackInnerRadius(float stroke) {
-        return stackOuterRadius(stroke) - (2f * stackBeadR(stroke) + 0.30f * stroke);
-    }
-    /** The inner row's bead, scaled by the ratio of the two radii; see the note above. */
-    static float stackInnerBeadR(float stroke) {
-        return stackBeadR(stroke) * (stackInnerRadius(stroke) / stackOuterRadius(stroke));
-    }
     /** Default ring stroke; the user's {@code ring_stroke} setting overrides it. */
     static final float B_STROKE = 8f;
 
@@ -550,6 +520,22 @@ final class TrioGeometry {
      * is the fringe.
      */
     private static final float ARC_ROW_CLEARANCE = 1f;
+
+    /** Maximum half-span for a stacked row, accounting for its distance from the ring caps. */
+    static float stackedRowHalfAngle(float rowRadius, float dotRadius, int ringStroke) {
+        final float halfSpan = (float) Math.toRadians(BEAD_SPAN_DEG * 0.5f);
+        final float clearance = dotRadius + ringStroke * 0.5f + ARC_ROW_CLEARANCE;
+        final float radialDistance = rowRadius - B_R;
+        final float remaining = clearance * clearance - radialDistance * radialDistance;
+        if (remaining <= 0f) {
+            return halfSpan;
+        }
+        // The squared distance to a cap is the radial distance squared plus
+        // 4 * rowRadius * B_R * sin²(angle / 2).
+        final double capInset = 2 * Math.asin(Math.sqrt(remaining / (4 * rowRadius * B_R)));
+        final double halfOpening = Math.toRadians(GAP_WIDTH_DEG * 0.5f);
+        return Math.max(0f, Math.min(halfSpan, (float) (halfOpening - capInset)));
+    }
 
     /**
      * The largest bead radius that still lets four of them sit inside the opening.

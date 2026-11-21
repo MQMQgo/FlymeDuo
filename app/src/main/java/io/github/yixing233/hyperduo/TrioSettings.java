@@ -218,6 +218,7 @@ public final class TrioSettings {
     public boolean ringWarnNoService;
     /** Vertical nudge of the stacked pair, in design units; see {@link Prefs#KEY_DUAL_STACK_DY}. */
     public int dualStackDy;
+    public boolean dualStackSim2OnTop;
     /** Draw the pair as a flat 2x4 matrix instead of concentric arcs. */
     public boolean dualStackMatrix;
     /** Matrix-only geometry: dot size, pitch and vertical nudge. */
@@ -412,6 +413,7 @@ public final class TrioSettings {
         s.ringTypeSim = Prefs.TYPE_SIM_DATA;
         s.ringWarnNoService = Prefs.DEF_RING_WARN_NO_SERVICE;
         s.dualStackDy = Prefs.DEF_DUAL_STACK_NUDGE;
+        s.dualStackSim2OnTop = Prefs.DEF_DUAL_STACK_SIM2_ON_TOP;
         s.dualStackMatrix = Prefs.DEF_DUAL_STACK_MATRIX;
         s.dualMatrixSize = Prefs.DEF_DUAL_MATRIX_SIZE;
         s.dualMatrixGap = Prefs.DEF_DUAL_MATRIX_GAP;
@@ -640,6 +642,8 @@ public final class TrioSettings {
         s.dualStackDy = Prefs.clamp(
                 p.getInt(Prefs.KEY_DUAL_STACK_DY, Prefs.DEF_DUAL_STACK_NUDGE),
                 Prefs.MIN_DUAL_STACK_NUDGE, Prefs.MAX_DUAL_STACK_NUDGE);
+        s.dualStackSim2OnTop = p.getBoolean(Prefs.KEY_DUAL_STACK_SIM2_ON_TOP,
+                Prefs.DEF_DUAL_STACK_SIM2_ON_TOP);
         s.dualStackMatrix = p.getBoolean(Prefs.KEY_DUAL_STACK_MATRIX,
                 Prefs.DEF_DUAL_STACK_MATRIX);
         s.dualMatrixSize = Prefs.clamp(
@@ -1020,6 +1024,7 @@ public final class TrioSettings {
         s.ringTypeSim = ringTypeSim;
         s.ringWarnNoService = ringWarnNoService;
         s.dualStackDy = dualStackDy;
+        s.dualStackSim2OnTop = dualStackSim2OnTop;
         s.dualStackMatrix = dualStackMatrix;
         s.dualMatrixSize = dualMatrixSize;
         s.dualMatrixGap = dualMatrixGap;
@@ -1137,6 +1142,8 @@ public final class TrioSettings {
             case Prefs.KEY_RING_TYPE_SIM: ringTypeSim = src.ringTypeSim; return true;
             case Prefs.KEY_RING_WARN_NO_SERVICE: ringWarnNoService = src.ringWarnNoService; return true;
             case Prefs.KEY_DUAL_STACK_DY: dualStackDy = src.dualStackDy; return true;
+            case Prefs.KEY_DUAL_STACK_SIM2_ON_TOP:
+                dualStackSim2OnTop = src.dualStackSim2OnTop; return true;
             case Prefs.KEY_DUAL_MATRIX_SIZE: dualMatrixSize = src.dualMatrixSize; return true;
             case Prefs.KEY_DUAL_MATRIX_GAP: dualMatrixGap = src.dualMatrixGap; return true;
             case Prefs.KEY_DUAL_MATRIX_DY: dualMatrixDy = src.dualMatrixDy; return true;
@@ -1332,6 +1339,8 @@ public final class TrioSettings {
         s.dualStackDy = Prefs.clamp(
                 bundle.getInt(Prefs.KEY_DUAL_STACK_DY, Prefs.DEF_DUAL_STACK_NUDGE),
                 Prefs.MIN_DUAL_STACK_NUDGE, Prefs.MAX_DUAL_STACK_NUDGE);
+        s.dualStackSim2OnTop = bundle.getBoolean(Prefs.KEY_DUAL_STACK_SIM2_ON_TOP,
+                Prefs.DEF_DUAL_STACK_SIM2_ON_TOP);
         s.dualStackMatrix = bundle.getBoolean(Prefs.KEY_DUAL_STACK_MATRIX,
                 Prefs.DEF_DUAL_STACK_MATRIX);
         s.dualMatrixSize = Prefs.clamp(
@@ -1474,6 +1483,7 @@ public final class TrioSettings {
         b.putInt(Prefs.KEY_RING_TYPE_SIM, ringTypeSim);
         b.putBoolean(Prefs.KEY_RING_WARN_NO_SERVICE, ringWarnNoService);
         b.putInt(Prefs.KEY_DUAL_STACK_DY, dualStackDy);
+        b.putBoolean(Prefs.KEY_DUAL_STACK_SIM2_ON_TOP, dualStackSim2OnTop);
         b.putBoolean(Prefs.KEY_DUAL_STACK_MATRIX, dualStackMatrix);
         b.putInt(Prefs.KEY_DUAL_MATRIX_SIZE, dualMatrixSize);
         b.putInt(Prefs.KEY_DUAL_MATRIX_GAP, dualMatrixGap);
@@ -1619,6 +1629,7 @@ public final class TrioSettings {
                 && ringTypeSim == s.ringTypeSim
                 && ringWarnNoService == s.ringWarnNoService
                 && dualStackDy == s.dualStackDy
+                && dualStackSim2OnTop == s.dualStackSim2OnTop
                 && dualStackMatrix == s.dualStackMatrix
                 && dualMatrixSize == s.dualMatrixSize
                 && dualMatrixGap == s.dualMatrixGap
@@ -1654,6 +1665,7 @@ public final class TrioSettings {
         h = h * 31 + ringTypeSim;
         h = h * 31 + (ringWarnNoService ? 1 : 0);
         h = h * 31 + dualStackDy;
+        h = h * 31 + (dualStackSim2OnTop ? 1 : 0);
         h = h * 31 + (dualStackMatrix ? 1 : 0);
         h = h * 31 + dualMatrixSize;
         h = h * 31 + dualMatrixGap;

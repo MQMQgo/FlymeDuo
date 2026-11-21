@@ -22,6 +22,8 @@ public final class DualSimTest {
 
     public static void main(String[] args) {
         ringRows();
+        stackedGeometry();
+        stackedRowOrder();
         capsuleRows();
         warningTakesCentre();
         settingsRoundTrip();
@@ -37,8 +39,8 @@ public final class DualSimTest {
         final double centre = ringCentre(settings).getY();
         final RecordingCanvas split = render(settings, false, -1, SLOT_LEVELS);
         checkDots(split, 8, 5);
-        check(split.dotPositions.subList(0, 4).stream().allMatch(dot -> dot.getY() < centre)
-                && split.dotPositions.subList(4, 8).stream().allMatch(dot -> dot.getY() > centre),
+        check(split.dots.subList(0, 4).stream().allMatch(dot -> dot.centre().getY() < centre)
+                && split.dots.subList(4, 8).stream().allMatch(dot -> dot.centre().getY() > centre),
                 "separate positions put one row on each side of the ring");
 
         final TrioSettings stacked = TrioZones.withPiece(settings, Prefs.ZONE_BOTTOM,
@@ -51,7 +53,7 @@ public final class DualSimTest {
                 "both SIMs share the bottom while the top keeps its battery content");
         final RecordingCanvas bottom = render(restored, false, -1, SLOT_LEVELS);
         checkDots(bottom, 8, 5);
-        check(bottom.dotPositions.stream().allMatch(dot -> dot.getY() > centre),
+        check(bottom.dots.stream().allMatch(dot -> dot.centre().getY() > centre),
                 "both rows are below the ring centre");
         check(bottom.text.containsAll(List.of("72", "5G")),
                 "the two rows fit alongside the battery number and network type");
@@ -64,13 +66,13 @@ public final class DualSimTest {
         restored.dualStackMatrix = true;
         final RecordingCanvas matrix = render(restored, false, -1, SLOT_LEVELS);
         checkDots(matrix, 8, 5);
-        check(matrix.dotPositions.stream().allMatch(dot -> dot.getY() > centre)
+        check(matrix.dots.stream().allMatch(dot -> dot.centre().getY() > centre)
                 && matrix.text.contains("72"), "the optional matrix also stays below the ring centre");
 
         final TrioSettings topPair = TrioZones.withPiece(settings, 0, TrioZones.Part.SIM_2);
         final RecordingCanvas top = render(topPair, false, -1, SLOT_LEVELS);
         checkDots(top, 8, 5);
-        check(top.dotPositions.stream().allMatch(dot -> dot.getY() < centre),
+        check(top.dots.stream().allMatch(dot -> dot.centre().getY() < centre),
                 "two cards assigned to the top can share the upper opening");
 
         checkDots(render(restored, false, -1, new int[] { -1, 1 }), 4, 1);
@@ -101,13 +103,91 @@ public final class DualSimTest {
     }
 
     private static void assertConcentric(RecordingCanvas canvas, Point2D centre) {
-        final double outer = canvas.dotPositions.get(0).distance(centre);
-        final double inner = canvas.dotPositions.get(4).distance(centre);
+        final double outer = canvas.dots.get(0).centre().distance(centre);
+        final double inner = canvas.dots.get(4).centre().distance(centre);
         check(outer > inner, "the second row follows the inner arc");
-        for (int i = 0; i < canvas.dotPositions.size(); i++) {
+        for (int i = 0; i < canvas.dots.size(); i++) {
             final double radius = i < 4 ? outer : inner;
-            check(Math.abs(canvas.dotPositions.get(i).distance(centre) - radius) < 0.001,
+            check(Math.abs(canvas.dots.get(i).centre().distance(centre) - radius) < 0.001,
                     "each row has a constant radius around the ring centre");
+        }
+    }
+
+    private static void stackedGeometry() {
+        final TrioSettings settings = TrioSettings.defaults();
+        settings.ringZones = Prefs.decodeLayout("3|1|7,8");
+        settings.showSim1 = settings.showSim2 = true;
+        final Point2D centre = ringCentre(settings);
+        final RecordingCanvas bottom = render(settings, false, -1, SLOT_LEVELS);
+        checkDots(bottom, 8, 5);
+        final Dot outer = bottom.dots.get(0);
+        final Dot inner = bottom.dots.get(4);
+        final double outerRadius = outer.centre().distance(centre);
+        final double scale = outerRadius / TrioGeometry.B_R;
+        final double radialGap = outerRadius - inner.centre().distance(centre)
+                - outer.radius() - inner.radius();
+        check(radialGap > scale && radialGap < 4 * scale, "the two rows have a compact edge gap");
+        final double innerDotGap = inner.centre().distance(bottom.dots.get(5).centre())
+                - 2 * inner.radius();
+        check(innerDotGap > 2 * scale, "the inner dots have room between them");
+        final double innerWidth = bottom.dots.get(7).centre().getX() - inner.centre().getX()
+                + 2 * inner.radius();
+        check(innerWidth > 42 * scale, "the inner row spreads across the opening");
+
+        for (String layout : List.of("7,8||", "||7,8")) {
+            settings.ringZones = Prefs.decodeLayout(layout);
+            for (int stroke : new int[] { Prefs.MIN_RING_STROKE, Prefs.MAX_RING_STROKE }) {
+                settings.ringStroke = stroke;
+                for (int size : new int[] { Prefs.MIN_DOT_SCALE, Prefs.MAX_DOT_SCALE }) {
+                    settings.dotScale = size;
+                    for (int nudge : new int[] { Prefs.MIN_DUAL_STACK_NUDGE, 0,
+                            Prefs.MAX_DUAL_STACK_NUDGE }) {
+                        settings.dualStackDy = nudge;
+                        final RecordingCanvas frame = render(settings, false, -1, SLOT_LEVELS);
+                        checkDots(frame, 8, 5);
+                        checkStackClearance(frame);
+                    }
+                }
+            }
+        }
+    }
+
+    private static void checkStackClearance(RecordingCanvas canvas) {
+        for (int i = 0; i < canvas.dots.size(); i++) {
+            final Dot dot = canvas.dots.get(i);
+            final double x = dot.centre().getX();
+            final double y = dot.centre().getY();
+            check(x - dot.radius() >= 0 && x + dot.radius() <= SIZE
+                    && y - dot.radius() >= 0 && y + dot.radius() <= SIZE,
+                    "dot ink stays inside the glyph bounds");
+            for (int j = i + 1; j < canvas.dots.size(); j++) {
+                final Dot other = canvas.dots.get(j);
+                check(dot.centre().distance(other.centre()) > dot.radius() + other.radius(),
+                        "the dots have clearance even at the slider limits");
+            }
+        }
+    }
+
+    private static void stackedRowOrder() {
+        final TrioSettings settings = TrioSettings.defaults();
+        settings.showSim1 = settings.showSim2 = true;
+        for (String layout : List.of("7,8||", "||7,8")) {
+            settings.ringZones = Prefs.decodeLayout(layout);
+            for (boolean matrix : new boolean[] { false, true }) {
+                settings.dualStackMatrix = matrix;
+                for (boolean sim2OnTop : new boolean[] { false, true }) {
+                    settings.dualStackSim2OnTop = sim2OnTop;
+                    final RecordingCanvas frame = render(settings, false, -1, SLOT_LEVELS);
+                    checkDots(frame, 8, 5);
+                    final List<Dot> first = frame.dots.subList(0, 4);
+                    final List<Dot> second = frame.dots.subList(4, 8);
+                    final double firstY = first.stream().mapToDouble(dot -> dot.centre().getY()).sum();
+                    final double secondY = second.stream().mapToDouble(dot -> dot.centre().getY()).sum();
+                    final List<Dot> upper = firstY < secondY ? first : second;
+                    check(upper.stream().filter(Dot::lit).count() == SLOT_LEVELS[sim2OnTop ? 1 : 0],
+                            "the physically upper row uses the selected SIM level");
+                }
+            }
         }
     }
 
@@ -157,14 +237,17 @@ public final class DualSimTest {
         final TrioSettings settings = TrioSettings.defaults();
         check(settings.ringTypeSim == Prefs.TYPE_SIM_DATA && !settings.ringWarnNoService,
                 "existing installs default to the data SIM with the warning off");
+        check(settings.dualStackSim2OnTop, "the bottom pair initially keeps SIM 2 in the upper row");
         settings.ringTypeSim = Prefs.TYPE_SIM_2;
         settings.ringWarnNoService = true;
+        settings.dualStackSim2OnTop = false;
         final TrioSettings fromBroadcast = TrioSettings.fromBundle(settings.toBundle());
-        check(fromBroadcast.ringTypeSim == Prefs.TYPE_SIM_2 && fromBroadcast.ringWarnNoService,
-                "both settings survive a broadcast");
+        check(fromBroadcast.ringTypeSim == Prefs.TYPE_SIM_2 && fromBroadcast.ringWarnNoService
+                && !fromBroadcast.dualStackSim2OnTop, "the SIM settings survive a broadcast");
         final TrioSettings incremental = TrioSettings.defaults();
         check(incremental.applyKeyFrom(settings, Prefs.KEY_RING_TYPE_SIM)
                 && incremental.applyKeyFrom(settings, Prefs.KEY_RING_WARN_NO_SERVICE)
+                && incremental.applyKeyFrom(settings, Prefs.KEY_DUAL_STACK_SIM2_ON_TOP)
                 && incremental.equals(fromBroadcast), "live preference changes reach SystemUI");
         final Bundle invalid = new Bundle();
         invalid.putInt(Prefs.KEY_RING_TYPE_SIM, 99);
@@ -186,10 +269,11 @@ public final class DualSimTest {
     }
 
     private static void checkDots(RecordingCanvas canvas, int total, int active) {
-        final int count = canvas.dotPositions.size();
-        check(count == total && canvas.activeDots == active,
+        final int count = canvas.dots.size();
+        final long activeDots = canvas.dots.stream().filter(Dot::lit).count();
+        check(count == total && activeDots == active,
                 "expected " + total + " dots (" + active + " lit), got "
-                        + count + " (" + canvas.activeDots + " lit)");
+                        + count + " (" + activeDots + " lit)");
     }
 
     private static void check(boolean condition, String message) {
@@ -198,12 +282,13 @@ public final class DualSimTest {
         }
     }
 
+    private record Dot(Point2D centre, double radius, boolean lit) {}
+
     private static final class RecordingCanvas extends Canvas {
         final List<String> text = new ArrayList<>();
-        final List<Point2D> dotPositions = new ArrayList<>();
+        final List<Dot> dots = new ArrayList<>();
         final int ink;
         int paths;
-        int activeDots;
 
         RecordingCanvas(int ink) {
             super(new BufferedImage(SIZE, SIZE, BufferedImage.TYPE_INT_ARGB).createGraphics());
@@ -212,10 +297,9 @@ public final class DualSimTest {
 
         @Override
         public void drawCircle(float x, float y, float radius, Paint paint) {
-            dotPositions.add(graphics().getTransform().transform(new Point2D.Double(x, y), null));
-            if (paint.getColor() == ink) {
-                activeDots++;
-            }
+            final var transform = graphics().getTransform();
+            dots.add(new Dot(transform.transform(new Point2D.Double(x, y), null),
+                    radius * transform.getScaleX(), paint.getColor() == ink));
         }
 
         @Override

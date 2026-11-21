@@ -185,6 +185,7 @@
     <string name="demo_mobile_type_summary">把系统的 5G 图标显示为 5GA。只在系统显示 5G 时生效，连 Wi-Fi、4G、关闭移动数据时与原 5G 图标一样随之消失。只改绘制，不碰通信状态</string>
     <string name="dual_stack_group_title">双卡堆叠样式</string>
     <string name="dual_stack_group_summary">两张卡设在同一位置时生效</string>
+    <string name="dual_stack_upper_sim_title">上排显示</string>
     <string name="dual_stack_dx_title">堆叠水平位置</string>
     <string name="dual_stack_dx_summary">整组左右平移，负值向左；与环的描边、其他组件无关，只动这一组</string>
     <string name="slider_default_note">默认 %1$s</string>
@@ -201,7 +202,7 @@
     <string name="dual_stack_matrix_title">矩阵排布（2×4 点阵）</string>
     <string name="dual_stack_matrix_summary">关闭时两行沿环弧排布，与环同曲率；打开时改为两行四点的平直矩阵，点更小、整体居中，更接近原生双卡的观感</string>
     <string name="dual_stack_dy_title">堆叠垂直位置</string>
-    <string name="dual_stack_dy_summary">整组上下平移，负值向上；用来把两条弧从环口、类型标签旁边挪开</string>
+    <string name="dual_stack_dy_summary">整组上移或下移，负值向上，正值向下。</string>
 
     <string name="perf_scale_title">读数整体尺寸</string>
     <string name="perf_scale_summary">默认 100%，可调 60–150%。</string>
