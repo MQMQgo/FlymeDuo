@@ -291,7 +291,16 @@ public final class TrioPreviewView extends View {
         int sims = 0;
         if (slotLevels != null) for (int signal : slotLevels) if (signal >= 0) sims++;
         return TrioZones.batteryRingAt(zoneTransform(getWidth(), getHeight(), inset, settings),
-                a, a.ring(level, charging, wifiLevel, mobileType, sims), x, y);
+                a, a.ring(level, charging, wifiLevel, previewMobileType(), sims), x, y);
+    }
+
+    private String previewMobileType() {
+        if (settings.trioStyle == Prefs.STYLE_RING && settings.ringTypeSim == Prefs.TYPE_SIM_2
+                && !mobileType.isEmpty() && slotLevels != null
+                && slotLevels.length >= 2 && slotLevels[0] >= 0 && slotLevels[1] >= 0) {
+            return "4G";
+        }
+        return mobileType;
     }
 
     /**
@@ -388,7 +397,7 @@ public final class TrioPreviewView extends View {
             // conflation the renderer had to stop making on the bar. Kept here because in a
             // scene it is not a conflation: nothing else knows.
             TrioRenderer.drawInto(canvas, innerW, innerH, level, charging, quickCharging,
-                    powerSave, low, wifiLevel, mobileLevel, slotLevels, mobileType, foreground,
+                    powerSave, low, wifiLevel, mobileLevel, slotLevels, previewMobileType(), foreground,
                     settings, false, wifiLevel >= 0);
         }
         canvas.restoreToCount(save);

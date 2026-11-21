@@ -146,6 +146,14 @@
     <string name="type_hide_on_data_off_summary">打开后，关闭移动数据时不再显示 5G/4G 字样：环内缺口会自动合上，环外标签同步隐藏。这样一眼就能看出流量到底开没开</string>
     <string name="show_mobile_type_title">网络类型</string>
     <string name="show_mobile_type_summary">3G/4G/5G 等文字，可放在环内或环外。</string>
+    <string name="ring_type_sim_title">圆环网络类型来源</string>
+    <string name="ring_type_sim_summary">双卡启用时，选择圆环显示哪张卡的网络类型。</string>
+    <string name="ring_type_sim_data">跟随上网卡</string>
+    <string name="ring_type_sim_1">卡一</string>
+    <string name="ring_type_sim_2">卡二</string>
+    <string name="ring_warn_no_service_title">始终提示无网络</string>
+    <string name="ring_warn_no_service_summary">任一已启用的 SIM 卡失去蜂窝服务时，圆环中心优先显示「无网络」，恢复后自动消失。</string>
+    <string name="network_no_service">无网络</string>
     <string name="mobile_type_off">关闭</string>
     <string name="mobile_type_inside">环内</string>
     <string name="mobile_type_outside">环外</string>

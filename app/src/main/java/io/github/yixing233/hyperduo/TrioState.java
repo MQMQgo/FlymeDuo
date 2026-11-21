@@ -11,6 +11,7 @@
 package io.github.yixing233.hyperduo;
 
 import android.content.Context;
+import android.content.pm.PackageManager;
 import android.content.res.Configuration;
 import android.content.res.Resources;
 import android.os.SystemClock;
@@ -191,22 +192,12 @@ final class TrioState {
     static boolean sDataEnabledPublic() {
         return sDataEnabled;
     }
-    /**
-     * Whether the radio currently reports 5G-Advanced.
-     *
-     * <p>Not taken from the icon Flyme hands us: the stock SystemUI ships
-     * {@code bool/config_display_5g_a = false}, so on some builds the 5G-A resource is never
-     * requested even when the network is 5G-A. The display info is the value the platform
-     * itself derives from the radio, so reading it directly is what lets the module draw
-     * 5GA on a phone whose stock label would say 5G.
-     */
-    static volatile boolean sNrAdvanced;
-
     /** The current default-data SIM's slot, or {@code -1} when it is unknown. */
     static volatile int sDataSlot = -1;
 
     /** Telephony app context, captured from the first hooked view. */
     private static volatile Context sContext;
+    private static volatile Resources sModuleResources;
     /** Last tint line logged, so a per-frame call site logs only when it changes. */
     private static volatile String sLastTint;
     /** Next {@link SystemClock#elapsedRealtime} at which telephony may be polled. */
@@ -285,6 +276,8 @@ final class TrioState {
     boolean wifiPresent = true;
     boolean islandHideBattery;
     String mobileType = "";
+    /** Localized text when the optional ring-centre warning is active. */
+    String noServiceLabel;
     /** Per-SIM levels by slot; a fresh array each refresh, never mutated in place. */
     int[] slotLevels = { -1, -1 };
     /** How many of {@link #slotLevels} carry a reading. */
@@ -391,7 +384,8 @@ final class TrioState {
         // when the second row is wanted, when the out-of-ring reading needs a
         // level per SIM, or when the icon chain has never answered and the data
         // SIM's own reading is the only thing left to fall back on.
-        if (TrioConfig.get().dualSim || TrioConfig.appearance().drawsAnySimRow()
+        final TrioSettings cfg = TrioConfig.get();
+        if (cfg.dualSim || TrioConfig.appearance().drawsAnySimRow()
                 || sMobileLevel < 0) {
             sampleSimsIfDue();
         }
@@ -400,33 +394,22 @@ final class TrioState {
         mobileLevel = sMobileLevel;
         wifiPresent = sWifiPresent;
         islandHideBattery = sIslandHideBattery;
-        mobileType = sMobileType;
-        // Ask the data toggle first, so the demo below can still override it: the demo exists
-        // to inspect the drawing, and burying it behind a switch about the radio would make it
-        // untestable on a phone whose data happens to be off.
+        final boolean ring = cfg.trioStyle == Prefs.STYLE_RING;
+        final MobileNetworkPresence.Snapshot network = MobileNetworkPresence.snapshot();
+        final int typeSource = ring ? cfg.ringTypeSim : Prefs.TYPE_SIM_DATA;
+        mobileType = network.label(typeSource, sMobileType, cfg.typeFollowNrAdvanced);
+        noServiceLabel = ring && cfg.ringWarnNoService && network.hasNoService()
+                ? noServiceText() : null;
         sampleDataIfDue();
-        if (!sDataEnabled && io.github.yixing233.hyperduo.TrioConfig.get().typeHideOnDataOff) {
-            // An empty type is exactly "no ink": the ring's notch closes on its own, the
-            // capsule cell falls through to its next candidate, and the out-of-ring label
-            // hides with it. One rule, three surfaces - nothing else has to know.
+        if (!sDataEnabled && cfg.typeHideOnDataOff) {
             mobileType = "";
-        }
-        // The platform knows before the label does: several Flyme builds ship
-        // bool/config_display_5g_a = false, so the 5G-A resource is never requested and the
-        // icon arrives as plain 5G even on a 5G-A cell. When the display info says the radio
-        // is 5G-Advanced and the label we were handed is a plain 5G, draw 5GA - the module
-        // already owns that reading, so no stock resource is needed.
-        if (sNrAdvanced && "5G".equals(mobileType)
-                && io.github.yixing233.hyperduo.TrioConfig.get().typeFollowNrAdvanced) {
-            mobileType = DEMO_MOBILE_TYPE;
         }
         // Manual 5GA: show a real 5G label as 5GA. Only a "5G" is upgraded, AFTER the data-off
         // rule above, so the label still appears and disappears exactly like the stock 5G one
         // (Wi-Fi only, 4G, data off -> untouched). Needed because Flyme ports and stock Meizu
         // builds never report OVERRIDE_NETWORK_TYPE_NR_ADVANCED (carrier config has no NR
         // advanced threshold, the RIL reports no bandwidth), so the automatic path cannot fire.
-        if (io.github.yixing233.hyperduo.TrioConfig.get().demoMobileType
-                && "5G".equals(mobileType)) {
+        if (cfg.demoMobileType && "5G".equals(mobileType)) {
             mobileType = DEMO_MOBILE_TYPE;
         }
         // The three battery values are read straight from their statics by the
@@ -438,7 +421,7 @@ final class TrioState {
         // reading. Display only - the level never reaches telephony, and the real levels
         // return the moment the switch goes off. A card that really is present wins: the
         // demo is a stand-in for a missing one, never a replacement for a real one.
-        if (io.github.yixing233.hyperduo.TrioConfig.get().demoDualSim) {
+        if (cfg.demoDualSim) {
             final int[] faked = new int[slots.length];
             System.arraycopy(slots, 0, faked, 0, slots.length);
             if (faked[0] < 0) {
@@ -487,12 +470,25 @@ final class TrioState {
             // The data switch has no view of its own: it is a setting, and the shade that
             // flips it does not redraw the glyph. Watch it, do not wait to be asked.
             DataPresence.start(sContext);
-            // The radio's own answer, independent of whether the stock label code ever asks
-            // for it: on builds that hide 5G-A, the icon alone can only ever say 5G.
-            NrAdvancedPresence.start(sContext);
+            MobileNetworkPresence.start(sContext);
+            sModuleResources = sContext.getPackageManager()
+                    .getResourcesForApplication("io.github.yixing233.hyperduo");
+        } catch (PackageManager.NameNotFoundException ignored) {
+            // Use the fallback label if SystemUI cannot load the module's resources.
         } catch (Throwable ignored) {
-            // leave it null; the reading stays on the single-row fallback
+            // Keep the stock type as a fallback if observation is unavailable.
         }
+    }
+
+    private static String noServiceText() {
+        try {
+            if (sModuleResources != null) {
+                return sModuleResources.getString(R.string.network_no_service);
+            }
+        } catch (Resources.NotFoundException ignored) {
+            // The module may have been updated since SystemUI loaded these resources.
+        }
+        return "No service";
     }
 
     /**
@@ -529,15 +525,6 @@ final class TrioState {
      * stays current while nothing is being drawn - the shade case, where the old value used
      * to survive until the next unrelated repaint.
      */
-    /** Records the 5G-A flag and reports whether it moved. */
-    static boolean setNrAdvanced(boolean advanced) {
-        if (sNrAdvanced == advanced) {
-            return false;
-        }
-        sNrAdvanced = advanced;
-        return true;
-    }
-
     static boolean setDataEnabled(boolean enabled) {
         if (sDataEnabled == enabled) {
             return false;

@@ -291,7 +291,8 @@ final class TrioRenderer {
         }
         drawInto(canvas, host.getWidth(), host.getHeight(), s.level, s.charging, s.quickCharging,
                 s.powerSave, s.low, s.wifiPresent ? s.wifiLevel : -1, s.mobileLevel,
-                s.slotLevels, s.mobileType, s.foreground(), cfg, false, s.wifiPresent);
+                s.slotLevels, s.mobileType, s.foreground(), cfg, false, s.wifiPresent,
+                s.noServiceLabel);
         canvas.restoreToCount(flymeSave);
     }
 
@@ -306,7 +307,7 @@ final class TrioRenderer {
         }
         drawInto(canvas, w, h, s.level, s.charging, s.quickCharging, s.powerSave, s.low,
                 s.wifiPresent ? s.wifiLevel : -1, s.mobileLevel, s.slotLevels, s.mobileType,
-                s.foreground(), cfg, true, s.wifiPresent);
+                s.foreground(), cfg, true, s.wifiPresent, s.noServiceLabel);
     }
 
     /**
@@ -356,6 +357,16 @@ final class TrioRenderer {
                          int wifiLevel, int mobileLevel, int[] slotLevels, String mobileType,
                          int fg, TrioSettings cfg, boolean clearWhenDone,
                          boolean wifiConnected) {
+        drawInto(canvas, w, h, level, charging, quickCharging, powerSave, low,
+                wifiLevel, mobileLevel, slotLevels, mobileType, fg, cfg, clearWhenDone,
+                wifiConnected, null);
+    }
+
+    private static void drawInto(Canvas canvas, int w, int h, int level, boolean charging,
+                                 boolean quickCharging, boolean powerSave, boolean low,
+                                 int wifiLevel, int mobileLevel, int[] slotLevels, String mobileType,
+                                 int fg, TrioSettings cfg, boolean clearWhenDone,
+                                 boolean wifiConnected, String noServiceLabel) {
         if (w <= 0 || h <= 0 || cfg == null) {
             return;
         }
@@ -432,7 +443,7 @@ final class TrioRenderer {
                     slots, sims, shownType, role, fg, appearance);
         } else {
             drawRingLayout(canvas, level, charging, quickCharging, wifiLevel, mobileLevel,
-                    slots, sims, shownType, role, fg, appearance, wifiConnected);
+                    slots, sims, shownType, role, fg, appearance, wifiConnected, noServiceLabel);
         }
 
         canvas.restoreToCount(save);
@@ -450,11 +461,12 @@ final class TrioRenderer {
     private static void drawRingLayout(Canvas canvas, int level, boolean charging,
                                        boolean quickCharging, int wifiLevel, int mobileLevel,
                                        int[] slotLevels, int sims, String mobileType, int role,
-                                       int fg, TrioAppearance a, boolean wifiConnected) {
+                                       int fg, TrioAppearance a, boolean wifiConnected,
+                                       String noServiceLabel) {
         final TrioAppearance.Ring r = a.ring(level, charging, wifiLevel, mobileType, sims,
-                wifiConnected);
+                wifiConnected, noServiceLabel != null);
         drawFreeRing(canvas, level, quickCharging, wifiLevel, mobileLevel,
-                slotLevels, mobileType, role, fg, a, r);
+                slotLevels, noServiceLabel != null ? noServiceLabel : mobileType, role, fg, a, r);
     }
 
     /** Explicit slots share the editor's thirds and fit ink on BOTH axes. */
@@ -465,6 +477,7 @@ final class TrioRenderer {
         for (int z = 0; z < 3; z++) {
             final int part = r.parts[z];
             if (part == Prefs.PART_NONE) continue;
+            if (r.stackedDual && Prefs.isSignalRow(part)) continue;
             final float cx = TrioGeometry.B_CX;
             final float cy = TrioGeometry.ZONE_CY[z];
             final float width = 78f - a.ringStroke;
@@ -493,68 +506,11 @@ final class TrioRenderer {
                 c.translate(-TrioGeometry.BOLT_CX_REF, -TrioGeometry.BOLT_INK_CY);
                 FILL.setColor(quickCharging ? TrioGeometry.QUICK_CHARGE : fg);
                 c.drawPath(BOLT, FILL);
-            } else if (part == Prefs.PART_MOBILE
-                    || part == Prefs.PART_SIM_1 || part == Prefs.PART_SIM_2) {
-                // All three are the same drawing: one row of four level beads. They
-                // differ only in which reading feeds them - PART_MOBILE is the aggregate
-                // meter, the two SIM parts are the individual cards.
-                //
-                // The row is drawn by ONE routine regardless of which part it is, and
-                // that routine already shapes itself by the third it sits in: beads
-                // threaded onto the ring's opening at the top and bottom, a compact
-                // horizontal row in the middle. Drawing PART_MOBILE through a separate
-                // straight-line path was what made "move the signal to the top" turn
-                // into a flat row inside a round ring.
-                final int rowLevel = part == Prefs.PART_MOBILE
-                        ? mobileLevel
-                        : (levels == null ? -1 : levels[part == Prefs.PART_SIM_1 ? 0 : 1]);
-                final int active = rowLevel < 0 ? 0 : Math.min(4, rowLevel);
-                // The user's size multiplies the reference bead; the opening's room still
-                // caps it, so a large setting stops growing rather than overrunning the
-                // arc's caps. See TrioGeometry.arcRowDotR's four-argument form.
+            } else if (Prefs.isSignalRow(part)) {
+                final int active = Prefs.clamp(rowValue(part, mobileLevel, levels), 0, 4);
                 final float rowBead = TrioGeometry.arcRowDotR(z, a.ringStroke, width,
                         a.dotScaleFactor());
-                if (!r.stackedDual) {
-                    drawArcDotRow(c, active, z, rowBead, fg, a);
-                } else {
-                    // Both rows are this module's now, so the position setting moves the
-                    // PAIR rather than one extra row bolted beside the original: the reading
-                    // the user places and the second card are one element with one address.
-                    //
-                    // They ride concentric arcs, not a straight offset. The bead is the same
-                    // reference in both, so the pair cannot disagree about size, and the
-                    // spacing is the pitch the row already uses.
-                    // The second row is the OTHER card, whichever part drew the first. For
-                    // PART_MOBILE that is the second slot: reading levels[0] there, as an
-                    // earlier pass did, drew the same card twice.
-                    final int other = levels == null ? -1
-                            : (part == Prefs.PART_SIM_1
-                                    ? (levels.length > 1 ? levels[1] : -1)
-                            : part == Prefs.PART_SIM_2 ? levels[0]
-                            : (levels.length > 1 ? levels[1] : -1));
-                    final int otherActive = other < 0 ? 0 : Math.min(4, other);
-                    if (a.dualStackMatrix()) {
-                        // The reference form: two flat rows of four, centred under the ring's
-                        // middle. Its dots are a fifth of the ring's thickness, not a bead the
-                        // size of it - the pair is meant to be lighter than the outline, not
-                        // cut out of it.
-                        drawDualMatrix(c, z, active, otherActive, fg, a);
-                    } else {
-                        // Bead size follows the radius, with the resting position as 100%: a
-                        // row pushed outward reads larger and one pulled inward smaller, which
-                        // is how a slice of the same circle behaves - and it is the rule the
-                        // nested Wi-Fi arcs already follow.
-                        final float spacing = rowBead * 3f;
-                        final float outward = a.dualStackAtBottom() ? -spacing : spacing;
-                        final float rhoBase = TrioGeometry.B_R;
-                        final float rho1 = rhoBase + a.dualStackDy;
-                        final float rho2 = rho1 + outward;
-                        drawArcDotRow(c, active, z, rowBead * (rho1 / rhoBase), fg, a,
-                                a.dualStackDy);
-                        drawArcDotRow(c, otherActive, z, rowBead * (rho2 / rhoBase), fg, a,
-                                a.dualStackDy + outward);
-                    }
-                }
+                drawArcDotRow(c, active, z, rowBead, fg, a);
             } else {
                 final String text = part == Prefs.PART_VALUE ? String.valueOf(level)
                         : part == Prefs.PART_TYPE ? type : TrioState.sClockText;
@@ -632,6 +588,31 @@ final class TrioRenderer {
             }
             c.restoreToCount(save);
         }
+        if (r.stackedDual) {
+            drawStackedRingRows(c, levels, fg, a);
+        }
+    }
+
+    private static void drawStackedRingRows(Canvas c, int[] levels, int fg, TrioAppearance a) {
+        final int zone = a.dualStackAtBottom() ? Prefs.ZONE_BOTTOM : 0;
+        final int first = Prefs.clamp(levels[0], 0, 4);
+        final int second = Prefs.clamp(levels[1], 0, 4);
+        final int save = c.save();
+        c.translate(TrioGeometry.B_CX, TrioGeometry.ZONE_CY[zone]);
+        if (a.dualStackMatrix()) {
+            drawDualMatrix(c, zone, first, second, fg, a);
+        } else {
+            final float bead = TrioGeometry.arcRowDotR(zone, a.ringStroke, 78f - a.ringStroke,
+                    a.dotScaleFactor());
+            final float outerOffset = a.dualStackDy;
+            final float innerOffset = outerOffset - bead * 3f;
+            final float radius = TrioGeometry.B_R;
+            drawArcDotRow(c, first, zone, bead * (radius + outerOffset) / radius, fg, a,
+                    outerOffset);
+            drawArcDotRow(c, second, zone, bead * (radius + innerOffset) / radius, fg, a,
+                    innerOffset);
+        }
+        c.restoreToCount(save);
     }
 
     /**
@@ -820,7 +801,7 @@ final class TrioRenderer {
         }
 
         if (cap.dots) {
-            drawCapsuleDots(canvas, mobileLevel, slotLevels, cap.dual, stroke, fg, a, cap);
+            drawCapsuleDots(canvas, mobileLevel, slotLevels, fg, a, cap);
         }
 
         // The left column is a BODY slot - the interior's own height budget, which is -1 in
@@ -1313,13 +1294,15 @@ final class TrioRenderer {
      * {@code buildCapsuleOutline}'s reach), because a stroke interrupted on one side only
      * reads as damage rather than as a row between two segments.
      */
-    private static void drawCapsuleDots(Canvas c, int level, int[] slotLevels, boolean dual,
-                                        float stroke, int fg, TrioAppearance a,
+    private static void drawCapsuleDots(Canvas c, int level, int[] slotLevels, int fg, TrioAppearance a,
                                         TrioAppearance.Capsule cap) {
-        final boolean topRow = cap == null || cap.dotsIn(TrioZones.Zone.TOP);
-        final boolean bottomRow = cap == null || cap.dotsIn(TrioZones.Zone.BOTTOM);
-        final int top = (dual && slotLevels != null) ? slotLevels[0] : level;
-        final int bottom = (dual && slotLevels != null) ? slotLevels[1] : level;
+        final boolean topRow = cap.dotsIn(TrioZones.Zone.TOP);
+        final boolean bottomRow = cap.dotsIn(TrioZones.Zone.BOTTOM);
+        final int topPart = cap.parts[TrioZones.Zone.TOP.ordinal()];
+        final int bottomPart = cap.parts[TrioZones.Zone.BOTTOM.ordinal()];
+        final boolean legacyDual = cap.dual && slotLevels != null;
+        final int top = rowValue(topPart, legacyDual ? slotLevels[0] : level, slotLevels);
+        final int bottom = rowValue(bottomPart, legacyDual ? slotLevels[1] : level, slotLevels);
         final int inactive = withAlpha(fg, a.trackAlpha);
         final int topActive = top < 0 ? 0 : Math.min(TrioGeometry.RECT_DOT_ROWS, top);
         final int bottomActive = bottom < 0 ? 0 : Math.min(TrioGeometry.RECT_DOT_ROWS, bottom);

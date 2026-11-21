@@ -29,7 +29,6 @@ final class FlymeHooks {
     private static volatile java.lang.reflect.Field sWifiViewStateField;
     private static final java.util.List<java.lang.String> MANAGED_SLOTS = java.util.Collections.unmodifiableList(java.util.Arrays.asList("wifi", "mobile", "stacked_mobile"));
     /** The ROM value of OVERRIDE_NETWORK_TYPE_NR_ADVANCED, resolved once in hookDisplayInfo. */
-    private static int sNrAdvancedValue = -1;
     private static final java.util.Map<android.view.View, io.github.yixing233.hyperduo.TrioState> STATES = java.util.Collections.synchronizedMap(new java.util.WeakHashMap());
     private static final java.util.Map<android.view.View, java.lang.Integer> SAVED_VISIBILITY = java.util.Collections.synchronizedMap(new java.util.WeakHashMap());
     private static final java.util.Map<java.lang.Object, java.util.List<java.lang.String>> ADDED_SLOTS = java.util.Collections.synchronizedMap(new java.util.WeakHashMap());
@@ -145,7 +144,7 @@ final class FlymeHooks {
         sActive = true;
         log(module, "flyme adapter build " + ADAPTER_BUILD);
         int count = hookBatteryView(module, cl);
-        return count + hookStatusBarCapture(module, cl) + hookControlCenterCapture(module, cl) + hookKeyguardStatusBarCapture(module, cl) + hookIconContainer(module, cl) + hookWifiState(module, cl) + hookMobileSignal(module, cl) + hookMobileTypeIcon(module, cl) + hookDisplayInfo(module, cl);
+        return count + hookStatusBarCapture(module, cl) + hookControlCenterCapture(module, cl) + hookKeyguardStatusBarCapture(module, cl) + hookIconContainer(module, cl) + hookWifiState(module, cl) + hookMobileSignal(module, cl) + hookMobileTypeIcon(module, cl);
     }
 
     static void onConfigChanged() {
@@ -820,62 +819,6 @@ final class FlymeHooks {
         }
         log(module, "SignalDrawable missing");
         return 0;
-    }
-
-    /**
-     * Reads the platform answer to "is this radio 5G-Advanced".
-     *
-     * <p>Hooked rather than queried, and hooked on the getter rather than on a callback: the
-     * value is already flowing through this process - SystemUI asks it to decide which icon
-     * to show - so reading it at the moment it is asked costs nothing and needs no listener,
-     * no subId bookkeeping and no privileged registry dump. The reference module (FlymeBarSizer)
-     * takes the same route, which is worth something: it is the adapter that already works on
-     * this ROM.
-     *
-     * <p>The comparison is by NAME, not by integer. {@code OVERRIDE_NETWORK_TYPE_NR_ADVANCED}
-     * arrived in API 34 and its ordinal is not something to hard-code across ROMs; the field
-     * name is stable, so the value is resolved once from the class and then compared by
-     * identity. If the ROM has no such field, the hook does nothing and the module keeps
-     * showing whatever the stock label said.
-     */
-    private static int hookDisplayInfo(io.github.libxposed.api.XposedModule module, java.lang.ClassLoader cl) {
-        final java.lang.Class<?> info = io.github.yixing233.hyperduo.Refl.cls("android.telephony.TelephonyDisplayInfo", cl);
-        if (info == null) {
-            return 0;
-        }
-        // One parser for both this hook and the subscription: two resolutions could disagree
-        // about a field a ROM renamed, and the disagreement would look like a 5G-A flicker.
-        final int advanced = io.github.yixing233.hyperduo.NrAdvancedPresence.advancedValue();
-        if (advanced == -1) {
-            log(module, "no OVERRIDE_NETWORK_TYPE_NR_ADVANCED: 5GA follows the stock label only");
-            return 0;
-        }
-        sNrAdvancedValue = advanced;
-        final java.lang.reflect.Method getter =
-                io.github.yixing233.hyperduo.Refl.method(info, "getOverrideNetworkType", new java.lang.Class[0]);
-        if (getter == null) {
-            return 0;
-        }
-        return hook(module, getter, "hyperduo-flyme-nr-advanced", new io.github.libxposed.api.XposedInterface.Hooker() {
-            public java.lang.Object intercept(io.github.libxposed.api.XposedInterface.Chain chain) throws java.lang.Throwable {
-                final java.lang.Object result = chain.proceed();
-                if (result instanceof java.lang.Integer) {
-                    final boolean advancedNow =
-                            ((java.lang.Integer) result).intValue() == sNrAdvancedValue;
-                    // This getter runs for EVERY subscription in the process, so on a dual-SIM
-                    // phone the second card's NONE used to overwrite the data card's 5G-A.
-                    // The hook may only raise the flag; the per-subscription callback in
-                    // NrAdvancedPresence is the one that lowers it.
-                    if (advancedNow && io.github.yixing233.hyperduo.TrioState.setNrAdvanced(true)) {
-                        io.github.yixing233.hyperduo.TrioHooks.log(
-                                io.github.yixing233.hyperduo.TrioHooks.LOG_INFO,
-                                "nr advanced=" + advancedNow);
-                        io.github.yixing233.hyperduo.FlymeHooks.invalidateHosts();
-                    }
-                }
-                return result;
-            }
-        });
     }
 
     private static int hookMobileTypeIcon(io.github.libxposed.api.XposedModule module, java.lang.ClassLoader cl) {

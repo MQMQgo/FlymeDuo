@@ -44,7 +44,7 @@ Flyme 的测量把电池视图锁死在电池图标的本征盒里（约 10dp）
 | 系统 | Flyme AIOS 2（Android 16，API 36）；同代 Flyme 理论可用 |
 | 框架 | LSPosed（libxposed API 102+），已在 2.2.1 上验证 |
 
-1. 从 [Releases](https://github.com/leyodr9000/FlymeDuo/releases) 下载最新的
+1. 从 [Releases](https://github.com/MQMQgo/FlymeDuo/releases) 下载最新的
    `FlymeDuo-*.apk` 并安装。
 2. LSPosed → 模块 → 启用 **FlymeDuo**，作用域勾选 **系统界面（`com.android.systemui`）**。
 3. 重启系统界面：

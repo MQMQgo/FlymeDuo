@@ -37,6 +37,7 @@ final class TrioState {
     int[] slotLevels = { -1, -1 };
     int sims;
     String mobileType = "";
+    String noServiceLabel;
 
     int foreground() {
         return 0xFF000000;

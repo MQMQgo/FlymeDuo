@@ -595,14 +595,6 @@ public final class TrioZones {
         if (a == null || cap == null) {
             return null;
         }
-        // A band holding a dot row reports that row, whatever the layout's id list says
-        // after the cell was resolved: the row IS the band's piece, and the editor has to
-        // name the thing the user can see there. Both openings are ordinary bands now - the
-        // rows used to belong to BOTTOM as a whole, which is why the top opening could hold
-        // visible dots with nothing the editor could point at.
-        if (cap.dotsIn(zone)) {
-            return Part.MOBILE;
-        }
         return decodePart(cap.parts[zone.ordinal()]);
     }
 

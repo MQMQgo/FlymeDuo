@@ -390,6 +390,10 @@ public final class Prefs {
      * zone cannot take the other two with it.
      */
     public static int[][] decodeLayout(String layout) {
+        return decodeLayout(layout, STYLE_RING);
+    }
+
+    static int[][] decodeLayout(String layout, int style) {
         final int[][] out = new int[ZONE_COUNT][];
         if (layout == null || layout.isEmpty()) {
             for (int z = 0; z < ZONE_COUNT; z++) {
@@ -401,7 +405,7 @@ public final class Prefs {
         for (int z = 0; z < ZONE_COUNT; z++) {
             out[z] = decodeSection(z < sections.length ? sections[z] : "");
         }
-        return repair(out);
+        return style == STYLE_RING ? repair(out) : out;
     }
 
     /**
@@ -1192,6 +1196,16 @@ public final class Prefs {
      * rule to keep in step.
      */
     public static final String KEY_TYPE_HIDE_ON_DATA_OFF = "type_hide_on_data_off";
+
+    /** Which subscription supplies the ring's network type when both SIMs are active. */
+    public static final String KEY_RING_TYPE_SIM = "ring_type_sim";
+    public static final int TYPE_SIM_DATA = 0;
+    public static final int TYPE_SIM_1 = 1;
+    public static final int TYPE_SIM_2 = 2;
+
+    /** Gives the ring centre to a no-service warning while an active SIM is offline. */
+    public static final String KEY_RING_WARN_NO_SERVICE = "ring_warn_no_service";
+    public static final boolean DEF_RING_WARN_NO_SERVICE = false;
 
     /**
      * While charging, the ring's centre shows the percentage whatever the layout put there,

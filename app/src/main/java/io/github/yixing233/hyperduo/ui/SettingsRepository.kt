@@ -80,11 +80,15 @@ class SettingsRepository(context: Context) {
     fun setDualSim(value: Boolean) = writeStyled(style(), Prefs.KEY_DUAL_SIM) { e, k ->
         e.putBoolean(k, value) }
     /** SIM 1's own row of dots, placed as a component - see [Prefs.KEY_SHOW_SIM_1]. */
-    fun setShowSim1(value: Boolean) = writeStyled(style(), Prefs.KEY_SHOW_SIM_1) { e, k ->
-        e.putBoolean(k, value) }
+    fun setShowSim1(value: Boolean) = applyRingAssignment(read().apply {
+        showSim1 = value
+        if (value) showMobile = true
+    })
     /** SIM 2's own row of dots, placed as a component - see [Prefs.KEY_SHOW_SIM_2]. */
-    fun setShowSim2(value: Boolean) = writeStyled(style(), Prefs.KEY_SHOW_SIM_2) { e, k ->
-        e.putBoolean(k, value) }
+    fun setShowSim2(value: Boolean) = applyRingAssignment(read().apply {
+        showSim2 = value
+        if (value) showMobile = true
+    })
     fun setValueCentred(value: Boolean) = writeStyled(style(), Prefs.KEY_VALUE_CENTRED) { e, k ->
         e.putBoolean(k, value) }
     /** 0 = hidden, 1 = inside the ring, 2 = outside it. */
@@ -273,6 +277,10 @@ class SettingsRepository(context: Context) {
     /** Drop the network type while mobile data is off. */
     fun setTypeHideOnDataOff(value: Boolean) =
         writeBoolean(Prefs.KEY_TYPE_HIDE_ON_DATA_OFF, value)
+
+    fun setRingTypeSim(value: Int) = writeInt(Prefs.KEY_RING_TYPE_SIM, value)
+
+    fun setRingWarnNoService(value: Boolean) = writeBoolean(Prefs.KEY_RING_WARN_NO_SERVICE, value)
     /** While charging the ring centre shows the percentage; see [Prefs.KEY_CHARGING_SHOWS_VALUE]. */
     fun setChargingShowsValue(value: Boolean) =
         writeBoolean(Prefs.KEY_CHARGING_SHOWS_VALUE, value)
@@ -534,6 +542,8 @@ class SettingsRepository(context: Context) {
             prefs.putInt(Prefs.KEY_WIFI_SCALE, snapshot.wifiScale)
             prefs.putBoolean(Prefs.KEY_TYPE_HIDE_ON_WIFI, snapshot.typeHideOnWifi)
             prefs.putBoolean(Prefs.KEY_TYPE_HIDE_ON_DATA_OFF, snapshot.typeHideOnDataOff)
+            prefs.putInt(Prefs.KEY_RING_TYPE_SIM, snapshot.ringTypeSim)
+            prefs.putBoolean(Prefs.KEY_RING_WARN_NO_SERVICE, snapshot.ringWarnNoService)
             prefs.putBoolean(Prefs.KEY_CHARGING_SHOWS_VALUE, snapshot.chargingShowsValue)
             prefs.putInt(Prefs.KEY_DOT_SCALE, snapshot.dotScale)
             prefs.putString(Prefs.KEY_OUT_ORDER, Prefs.encodeOutOrder(snapshot.outOrder))

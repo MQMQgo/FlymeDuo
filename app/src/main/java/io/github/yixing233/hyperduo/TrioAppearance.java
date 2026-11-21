@@ -639,16 +639,13 @@ public final class TrioAppearance {
      * same signal twice.
      */
     public boolean signalDots() {
-        if (signalOutOfRing) {
+        if (signalOutOfRing || !mobile) {
             return false;
         }
-        // The ring is slot-based, so a card has to be placed there to be drawn. The rectangle
-        // derives what it draws from the switch alone - it has no slots - so there the switch
-        // IS the answer. The capsule is asked through its resolved cells instead: its rows are
-        // placements now, so "the switch is on" is no longer the same question as "an opening
-        // holds a row". Capsule answers that itself in its constructor, using this method only
-        // for the legacy no-placement fallback.
-        return mobile && (!ring || hasRingPart(Prefs.PART_MOBILE));
+        if (capsule && !anyPlacedInCapsule()) {
+            return !showSim1 && !showSim2;
+        }
+        return rect || hasRingPart(Prefs.PART_MOBILE);
     }
 
     /**
@@ -847,7 +844,13 @@ public final class TrioAppearance {
      */
     public Ring ring(int level, boolean charging, int wifiLevel, String mobileType, int sims,
                      boolean wifiConnected) {
-        return new Ring(this, level, charging, wifiLevel, mobileType, sims, wifiConnected);
+        return ring(level, charging, wifiLevel, mobileType, sims, wifiConnected, false);
+    }
+
+    Ring ring(int level, boolean charging, int wifiLevel, String mobileType, int sims,
+              boolean wifiConnected, boolean noService) {
+        return new Ring(this, level, charging, wifiLevel, mobileType, sims, wifiConnected,
+                noService);
     }
 
     /** The rectangular arrangement's slot assignment for one frame. */
@@ -900,6 +903,7 @@ public final class TrioAppearance {
         public final boolean typeInGap;
         /** Something occupies the notch, so the ring has to open for it. */
         public final boolean gapUsed;
+        private final boolean bottomOpen;
         /** The two cards are drawn inside the ring this frame; see stacksDualRows. */
         public final boolean stackedDual;
         /** The pair is drawn as a matrix this frame, so the mouth widens for it. */
@@ -957,7 +961,7 @@ public final class TrioAppearance {
          * rule applied to the other end: a mouth exists while something sits in it.
          */
         public boolean bottomOpen() {
-            return parts[2] != Prefs.PART_NONE;
+            return bottomOpen;
         }
 
         /** The arc's angular sweep this frame; the full circle minus the bottom opening. */
@@ -1009,7 +1013,7 @@ public final class TrioAppearance {
          * had ever opened the editor.
          */
         private Ring(TrioAppearance a, int level, boolean charging, int wifiLevel,
-                     String mobileType, int sims, boolean wifiConnected) {
+                     String mobileType, int sims, boolean wifiConnected, boolean noService) {
             // ZONE_COUNT, not 3: the layout stores five sections now (three ring zones plus
             // the capsule's two), and this array is indexed by Zone.ordinal. The ring only
             // draws the first three; the rest resolve to PART_NONE because a ring install
@@ -1035,33 +1039,17 @@ public final class TrioAppearance {
                 // can be reached from a broadcast that never went through a decode, so the
                 // refusal is enforced here rather than trusted to have arrived.
                 parts[z] = firstDrawableInk(a, a.ringZones[z], z,
-                        level, charging, wifiLevel, mobileType, yieldType);
+                        level, charging, wifiLevel, noService ? "" : mobileType, yieldType);
             }
-            // Stacked dual reading: both cards move inside the ring, so neither mouth has to
-            // stay open for them. Cleared here rather than at the drawing site because the
-            // notch decision is made from these parts - a mouth left open with nothing
-            // threaded on it reads as a broken outline, and keeping the pieces in would also
-            // keep the type label squeezed out of the glyph, which is the conflict the
-            // stacked form exists to solve.
-            // The stacking does NOT take the pieces out of the bands. The mouth is part of the
-            // shape the user arranged, and closing it was not the request: only the drawing
-            // moves. Keeping the parts means the mouth opens exactly as before, and the
-            // renderer skips re-drawing the rows in it (they are painted as the nested pair).
-            stackedDual = a.stacksDualRows(sims);
-            // The matrix wants a wider mouth than the arcs do - four dots across is a wider
-            // footprint than one row of beads, and at the idle width the outer dots crowd the
-            // rounded stroke ends. Set before gapUsed, which consults it.
-            // Only when the pair hangs from the top: at the bottom the ring already has its
-            // natural opening to give the matrix, and widening the 12 o'clock mouth instead
-            // would open the wrong end.
-            // Whichever side the matrix hangs from is the side that opens for it. The top
-            // mouth is a gap constant; the bottom one is 360 - sweep, so it opens by
-            // shortening the arc instead. Automatic, because a setting for it would only
-            // ever have one correct value.
-            stackedMatrixBottom = stackedDual && a.dualStackMatrix() && a.dualStackAtBottom();
-            stackedMatrix = stackedDual && a.dualStackMatrix() && !a.dualStackAtBottom();
-            // Resolved once here, after both flags: the gap accessors run per frame and this
-            // keeps the arithmetic out of them. Zero restores the plain ring.
+            // Stack only the two rows that won their placements in this frame.
+            final int top = parts[0];
+            final int bottom = parts[Prefs.ZONE_BOTTOM];
+            final boolean bothRows = (top == Prefs.PART_SIM_1 && bottom == Prefs.PART_SIM_2)
+                    || (top == Prefs.PART_SIM_2 && bottom == Prefs.PART_SIM_1);
+            stackedDual = a.stacksDualRows(sims) && bothRows;
+            final boolean stackAtBottom = stackedDual && a.dualStackAtBottom();
+            stackedMatrixBottom = stackAtBottom && a.dualStackMatrix();
+            stackedMatrix = stackedDual && a.dualStackMatrix() && !stackAtBottom;
             mouthExtraDeg = stackedMatrix || stackedMatrixBottom ? a.dualMouthExtra : 0f;
 
             // A charger puts the number in the middle, whatever the layout arranged there.
@@ -1075,7 +1063,9 @@ public final class TrioAppearance {
             // Only the centre: the openings are what the ring was opened for, and a mouth
             // with something else in it would change the outline's shape as a side effect of
             // a preference about a number.
-            if (charging && a.chargingShowsValue && level >= 0
+            if (noService) {
+                parts[Prefs.ZONE_CENTRE] = Prefs.PART_TYPE;
+            } else if (charging && a.chargingShowsValue && level >= 0
                     && parts[TrioZones.Zone.CENTRE.ordinal()] != Prefs.PART_VALUE) {
                 parts[TrioZones.Zone.CENTRE.ordinal()] = Prefs.PART_VALUE;
             }
@@ -1087,9 +1077,8 @@ public final class TrioAppearance {
             wifiInGap = parts[0] == Prefs.PART_WIFI;
             typeInCentre = parts[1] == Prefs.PART_TYPE;
             typeInGap = parts[0] == Prefs.PART_TYPE;
-            // The matrix opens the mouth even though nothing is threaded on it: the wider
-            // opening IS the feature - it is room the matrix gets from the ring.
-            gapUsed = parts[0] != Prefs.PART_NONE || stackedMatrix;
+            gapUsed = stackedDual ? !stackAtBottom : top != Prefs.PART_NONE;
+            bottomOpen = stackedDual ? stackAtBottom : bottom != Prefs.PART_NONE;
             // The dual switch does not change how a zone is drawn. It used to mean "add a
             // second row to the meter, and widen the notch to hold it" - but a zone draws one
             // piece, so a second row has nowhere to go. Two cards are expressed by placing
@@ -1418,15 +1407,8 @@ public final class TrioAppearance {
          * whether one row or two are there, and a half-drawn outline would read as damage.
          */
         public final boolean dots;
-        /** The rows carry one SIM each - SIM 1 on top, SIM 2 below. */
+        /** The legacy unplaced rows use separate SIM readings. */
         public final boolean dual;
-        /**
-         * Which bands carry a dot row, indexed by {@link TrioZones.Zone#ordinal}.
-         *
-         * <p>False for the interior: it is a reading's band in every arrangement. The two
-         * openings are independent, so a user can draw SIM 1 at the top and nothing below.
-         */
-        public final boolean[] dotBands;
         /**
          * Per-cell occupants, indexed by {@link TrioZones.Zone#ordinal}, or
          * {@code PART_NONE} for a cell that draws nothing.
@@ -1436,7 +1418,6 @@ public final class TrioAppearance {
         private Capsule(TrioAppearance a, int level, boolean charging, int wifiLevel,
                         String mobileType, int sims, boolean wifiConnected) {
             parts = new int[Prefs.ZONE_COUNT];
-            dotBands = new boolean[Prefs.ZONE_COUNT];
 
             // Every band is a real cell now: the two openings hold either a reading or a dot
             // row, and only the interior is a reading's alone.
@@ -1451,9 +1432,6 @@ public final class TrioAppearance {
             // left column separately.
             parts[band.ordinal()] = firstDrawableInk(a, a.ringZones[band.ordinal()],
                         band.ordinal(), level, charging, wifiLevel, mobileType, yieldType);
-            }
-            for (TrioZones.Zone band : TrioZones.Zone.values()) {
-                dotBands[band.ordinal()] = isDotRow(parts[band.ordinal()]);
             }
 
             // The left column comes from the layout's own section. The legacy
@@ -1478,9 +1456,7 @@ public final class TrioAppearance {
             // distinction wrong is what made the cell ignore the list and draw the
             // clock whatever the user picked.
             final boolean anyPlaced = anyPlacedExceptLeft(parts)
-                    || a.ringZones[TrioZones.Zone.LEFT.ordinal()].length > 0
-                    || dotBands[TrioZones.Zone.TOP.ordinal()]
-                    || dotBands[TrioZones.Zone.BOTTOM.ordinal()];
+                    || a.ringZones[TrioZones.Zone.LEFT.ordinal()].length > 0;
             if (!anyPlaced) {
                 // Nothing has ever been placed: behave exactly as before these cells existed,
                 // so an upgrading install looks unchanged. The clock is fixed either way.
@@ -1499,9 +1475,10 @@ public final class TrioAppearance {
                 // And the shipped look's dot rows, which this arrangement always drew. They
                 // are the SAME condition signalDots() applies, so an untouched install draws
                 // precisely the pixels it used to.
-                final boolean legacyDots = a.signalDots();
-                dotBands[TrioZones.Zone.TOP.ordinal()] = legacyDots;
-                dotBands[TrioZones.Zone.BOTTOM.ordinal()] = legacyDots;
+                if (a.signalDots() && !a.anyPlacedInCapsule()) {
+                    parts[TrioZones.Zone.TOP.ordinal()] = Prefs.PART_MOBILE;
+                    parts[TrioZones.Zone.BOTTOM.ordinal()] = Prefs.PART_MOBILE;
+                }
                 // The left cell, which used to be a fixed column holding the time.
                 // An install that has never placed anything keeps exactly that: the
                 // clock, drawn where it always was. Without this the shipped look
@@ -1510,16 +1487,7 @@ public final class TrioAppearance {
                 parts[TrioZones.Zone.LEFT.ordinal()] = Prefs.PART_CLOCK;
             }
 
-            // A band that holds a dot row draws the row, not a reading: the row IS that band's
-            // piece. Clearing `parts` for it keeps the two answers from both claiming the band.
-            for (TrioZones.Zone band : TrioZones.Zone.values()) {
-                if (dotBands[band.ordinal()]) {
-                    parts[band.ordinal()] = Prefs.PART_NONE;
-                }
-            }
-
-            dots = dotBands[TrioZones.Zone.TOP.ordinal()]
-                    || dotBands[TrioZones.Zone.BOTTOM.ordinal()];
+            dots = dotsIn(TrioZones.Zone.TOP) || dotsIn(TrioZones.Zone.BOTTOM);
             dual = a.dualSimRows(false, charging, sims);
             // The left column counts as a cell here. These four flags answer "does this
             // piece have ink anywhere in the capsule on this frame", and the outline
@@ -1539,15 +1507,10 @@ public final class TrioAppearance {
             clock = true;
         }
 
-        /** Whether {@code band} carries a row of level dots. */
+        /** Whether the opening carries a row drawn on the outline. */
         public boolean dotsIn(TrioZones.Zone band) {
-            return dotBands != null && band != null && dotBands[band.ordinal()];
-        }
-
-        /** Whether {@code id} is one of the two rows of level dots. */
-        private static boolean isDotRow(int id) {
-            return id == Prefs.PART_SIM_1 || id == Prefs.PART_SIM_2
-                    || id == Prefs.PART_MOBILE;
+            return (band == TrioZones.Zone.TOP || band == TrioZones.Zone.BOTTOM)
+                    && Prefs.isSignalRow(parts[band.ordinal()]);
         }
 
         /** As {@link #anyPlaced}, ignoring the capsule's LEFT cell. */

@@ -119,6 +119,14 @@
     <string name="type_hide_on_data_off_summary">With this on, switching mobile data off drops the 5G/4G label: the ring notch closes by itself and the out-of-ring label hides with it, so the glyph stops claiming a network nobody is using.</string>
     <string name="show_mobile_type_title">Network type</string>
     <string name="show_mobile_type_summary">The 3G/4G/5G label, inside the ring or outside it.</string>
+    <string name="ring_type_sim_title">Ring network type source</string>
+    <string name="ring_type_sim_summary">Choose which SIM supplies the network type when both cards are active.</string>
+    <string name="ring_type_sim_data">Follow data SIM</string>
+    <string name="ring_type_sim_1">SIM 1</string>
+    <string name="ring_type_sim_2">SIM 2</string>
+    <string name="ring_warn_no_service_title">Always show loss of service</string>
+    <string name="ring_warn_no_service_summary">Show No service in the ring centre while any active SIM loses cellular service.</string>
+    <string name="network_no_service">No service</string>
     <string name="mobile_type_off">Off</string>
     <string name="mobile_type_inside">In the ring</string>
     <string name="mobile_type_outside">Outside the ring</string>

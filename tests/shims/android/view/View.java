@@ -15,13 +15,26 @@ public class View {
 
     private int width;
     private int height;
+    private final Resources resources = new Resources();
 
     public int getWidth() { return width; }
 
     public int getHeight() { return height; }
 
+    public Resources getResources() { return resources; }
+
     public void setSize(int w, int h) {
         width = w;
         height = h;
+    }
+
+    public static final class Resources {
+        private final DisplayMetrics metrics = new DisplayMetrics();
+
+        public DisplayMetrics getDisplayMetrics() { return metrics; }
+    }
+
+    public static final class DisplayMetrics {
+        public float density = 1f;
     }
 }

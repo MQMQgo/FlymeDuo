@@ -214,6 +214,8 @@ public final class TrioSettings {
     public boolean typeHideOnWifi;
     /** Drop the network type while mobile data is off; see {@link Prefs#KEY_TYPE_HIDE_ON_DATA_OFF}. */
     public boolean typeHideOnDataOff;
+    public int ringTypeSim;
+    public boolean ringWarnNoService;
     /** Stack both cards inside the ring; see {@link Prefs#KEY_DUAL_INSIDE_RING}. */
     public boolean dualInsideRing;
     /** Where the stacked pair sits; see {@link Prefs#KEY_DUAL_STACK_POS}. */
@@ -411,6 +413,8 @@ public final class TrioSettings {
         s.wifiScale = Prefs.DEF_WIFI_SCALE;
         s.typeHideOnWifi = Prefs.DEF_TYPE_HIDE_ON_WIFI;
         s.typeHideOnDataOff = Prefs.DEF_TYPE_HIDE_ON_DATA_OFF;
+        s.ringTypeSim = Prefs.TYPE_SIM_DATA;
+        s.ringWarnNoService = Prefs.DEF_RING_WARN_NO_SERVICE;
         s.dualInsideRing = Prefs.DEF_DUAL_INSIDE_RING;
         s.dualStackPos = Prefs.DEF_DUAL_STACK_POS;
         s.dualStackDy = Prefs.DEF_DUAL_STACK_NUDGE;
@@ -494,7 +498,8 @@ public final class TrioSettings {
         s.excludeRegions = Prefs.clamp(p.getInt(Prefs.KEY_EXCLUDE_REGIONS, Prefs.DEF_EXCLUDE_REGIONS), 0, Prefs.MAX_EXCLUDE_REGIONS);
         s.valueCentred = readStyledBoolean(p, Prefs.KEY_VALUE_CENTRED, Prefs.DEF_VALUE_CENTRED,
                 s.trioStyle);
-        s.ringZones = Prefs.decodeLayout(readRingLayout(p, s.trioStyle));
+        final String ringLayout = readRingLayout(p, s.trioStyle);
+        s.ringZones = Prefs.decodeLayout(ringLayout, s.trioStyle);
         s.dualSim = readStyledBoolean(p, Prefs.KEY_DUAL_SIM, Prefs.DEF_DUAL_SIM, s.trioStyle);
         s.signalMode = Prefs.clamp(
                 readStyledInt(p, Prefs.KEY_SIGNAL_MODE, Prefs.DEF_SIGNAL_MODE, s.trioStyle),
@@ -511,7 +516,7 @@ public final class TrioSettings {
         // zone that reserves room and draws nothing. Asking the RAW string (not the decoded
         // layout, which can no longer contain the old id) keeps this to exactly those
         // installs, and never re-enables a switch the user turned off afterwards.
-        if (Prefs.mentionsRetiredMeter(readRingLayout(p, s.trioStyle))) {
+        if (Prefs.mentionsRetiredMeter(ringLayout)) {
             s.showSim1 = true;
         }
         s.dataSimOnly = p.getBoolean(Prefs.KEY_DATA_SIM_ONLY, Prefs.DEF_DATA_SIM_ONLY);
@@ -634,6 +639,10 @@ public final class TrioSettings {
                 Prefs.DEF_TYPE_HIDE_ON_WIFI);
         s.typeHideOnDataOff = p.getBoolean(Prefs.KEY_TYPE_HIDE_ON_DATA_OFF,
                 Prefs.DEF_TYPE_HIDE_ON_DATA_OFF);
+        s.ringTypeSim = Prefs.clamp(p.getInt(Prefs.KEY_RING_TYPE_SIM, Prefs.TYPE_SIM_DATA),
+                Prefs.TYPE_SIM_DATA, Prefs.TYPE_SIM_2);
+        s.ringWarnNoService = p.getBoolean(Prefs.KEY_RING_WARN_NO_SERVICE,
+                Prefs.DEF_RING_WARN_NO_SERVICE);
         s.dualInsideRing = p.getBoolean(Prefs.KEY_DUAL_INSIDE_RING,
                 Prefs.DEF_DUAL_INSIDE_RING);
         s.dualStackPos = Prefs.clamp(
@@ -1019,6 +1028,8 @@ public final class TrioSettings {
         s.wifiScale = wifiScale;
         s.typeHideOnWifi = typeHideOnWifi;
         s.typeHideOnDataOff = typeHideOnDataOff;
+        s.ringTypeSim = ringTypeSim;
+        s.ringWarnNoService = ringWarnNoService;
         s.dualInsideRing = dualInsideRing;
         s.dualStackPos = dualStackPos;
         s.dualStackDy = dualStackDy;
@@ -1136,6 +1147,8 @@ public final class TrioSettings {
             case Prefs.KEY_WIFI_SCALE: wifiScale = src.wifiScale; return true;
             case Prefs.KEY_TYPE_HIDE_ON_WIFI: typeHideOnWifi = src.typeHideOnWifi; return true;
             case Prefs.KEY_TYPE_HIDE_ON_DATA_OFF: typeHideOnDataOff = src.typeHideOnDataOff; return true;
+            case Prefs.KEY_RING_TYPE_SIM: ringTypeSim = src.ringTypeSim; return true;
+            case Prefs.KEY_RING_WARN_NO_SERVICE: ringWarnNoService = src.ringWarnNoService; return true;
             case Prefs.KEY_DUAL_INSIDE_RING: dualInsideRing = src.dualInsideRing; return true;
             case Prefs.KEY_DUAL_STACK_POS: dualStackPos = src.dualStackPos; return true;
             case Prefs.KEY_DUAL_STACK_DY: dualStackDy = src.dualStackDy; return true;
@@ -1198,7 +1211,7 @@ public final class TrioSettings {
         s.mobileTypeMode = readMobileTypeMode(bundle, s.trioStyle);
         s.valueCentred = readStyledBoolean(bundle, Prefs.KEY_VALUE_CENTRED,
                 Prefs.DEF_VALUE_CENTRED, s.trioStyle);
-        s.ringZones = Prefs.decodeLayout(readRingLayout(bundle, s.trioStyle));
+        s.ringZones = Prefs.decodeLayout(readRingLayout(bundle, s.trioStyle), s.trioStyle);
         s.dualSim = readStyledBoolean(bundle, Prefs.KEY_DUAL_SIM, Prefs.DEF_DUAL_SIM,
                 s.trioStyle);
         s.signalMode = Prefs.clamp(
@@ -1327,6 +1340,10 @@ public final class TrioSettings {
                 Prefs.DEF_TYPE_HIDE_ON_WIFI);
         s.typeHideOnDataOff = bundle.getBoolean(Prefs.KEY_TYPE_HIDE_ON_DATA_OFF,
                 Prefs.DEF_TYPE_HIDE_ON_DATA_OFF);
+        s.ringTypeSim = Prefs.clamp(bundle.getInt(Prefs.KEY_RING_TYPE_SIM, Prefs.TYPE_SIM_DATA),
+                Prefs.TYPE_SIM_DATA, Prefs.TYPE_SIM_2);
+        s.ringWarnNoService = bundle.getBoolean(Prefs.KEY_RING_WARN_NO_SERVICE,
+                Prefs.DEF_RING_WARN_NO_SERVICE);
         s.dualInsideRing = bundle.getBoolean(Prefs.KEY_DUAL_INSIDE_RING,
                 Prefs.DEF_DUAL_INSIDE_RING);
         s.dualStackPos = Prefs.clamp(
@@ -1474,6 +1491,8 @@ public final class TrioSettings {
         b.putInt(Prefs.KEY_WIFI_SCALE, wifiScale);
         b.putBoolean(Prefs.KEY_TYPE_HIDE_ON_WIFI, typeHideOnWifi);
         b.putBoolean(Prefs.KEY_TYPE_HIDE_ON_DATA_OFF, typeHideOnDataOff);
+        b.putInt(Prefs.KEY_RING_TYPE_SIM, ringTypeSim);
+        b.putBoolean(Prefs.KEY_RING_WARN_NO_SERVICE, ringWarnNoService);
         b.putBoolean(Prefs.KEY_DUAL_INSIDE_RING, dualInsideRing);
         b.putInt(Prefs.KEY_DUAL_STACK_POS, dualStackPos);
         b.putInt(Prefs.KEY_DUAL_STACK_DY, dualStackDy);
@@ -1619,6 +1638,8 @@ public final class TrioSettings {
                 && wifiScale == s.wifiScale
                 && typeHideOnWifi == s.typeHideOnWifi
                 && typeHideOnDataOff == s.typeHideOnDataOff
+                && ringTypeSim == s.ringTypeSim
+                && ringWarnNoService == s.ringWarnNoService
                 && dualInsideRing == s.dualInsideRing
                 && dualStackPos == s.dualStackPos
                 && dualStackDy == s.dualStackDy
@@ -1654,6 +1675,8 @@ public final class TrioSettings {
         h = h * 31 + (perfTemp ? 1 : 0);
         h = h * 31 + (typeHideOnWifi ? 1 : 0);
         h = h * 31 + (typeHideOnDataOff ? 1 : 0);
+        h = h * 31 + ringTypeSim;
+        h = h * 31 + (ringWarnNoService ? 1 : 0);
         h = h * 31 + (dualInsideRing ? 1 : 0);
         h = h * 31 + dualStackPos;
         h = h * 31 + dualStackDy;
